@@ -1,0 +1,818 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import Icon from '~/components/Icon.astro';
+import Photo from '~/components/Photo.astro';
+import SectionHead from '~/components/SectionHead.astro';
+import YouTube from '~/components/YouTube.astro';
+import { org } from '~/data/site';
+import { milestones } from '~/data/about';
+import { themes, sortingGuide } from '~/data/programmes';
+import { activities } from '~/data/activities';
+import { caption } from '~/data/photos';
+import { fill } from '~/i18n/ui';
+import { formatDate, formatDigits, formatNumber, localizePath, tr, useTranslations, yearsSince, type Lang } from '~/i18n/utils';
+
+type Props = { lang: Lang };
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const L = (p: string) => localizePath(p, lang);
+
+const stats = [
+  { value: formatDigits(yearsSince(org.foundedOn), lang), label: t('home.stats.years') },
+  { value: formatNumber(50000, lang), label: t('home.stats.families') },
+  { value: `${formatNumber(33000, lang)}+`, label: t('home.stats.trained') },
+  { value: formatDigits(5, lang), label: t('home.stats.cities') },
+];
+
+const journey = milestones.filter((m) => ['1997', '2001', '2004', '2005', '2008', '2013'].includes(m.year.en));
+const field = activities.filter((a) => a.photos.length > 0 && a.date).slice(0, 3);
+
+const partnerLogos = [
+  { logo: 'aibi', name: 'Amici dei Bambini' },
+  { logo: 'japan-embassy', name: 'Embassy of Japan in Nepal' },
+  { logo: 'german-embassy', name: 'German Embassy Kathmandu' },
+  { logo: 'giz', name: 'GIZ' },
+  { logo: 'nepal-government', name: 'Government of Nepal' },
+  { logo: 'kmc', name: 'Kathmandu Metropolitan City' },
+  { logo: 'ntnc', name: 'National Trust for Nature Conservation' },
+  { logo: 'nhrc', name: 'Nepal Health Research Council' },
+  { logo: 'swman', name: 'Solid Waste Management Association of Nepal' },
+  { logo: 'ciud', name: 'Centre for Integrated Urban Development' },
+];
+
+const highlights = [
+  { icon: 'droplets', title: t('home.partners.h1'), text: t('home.partners.h1Text'), href: '/partners/#aibi' },
+  { icon: 'award', title: t('home.partners.h2'), text: t('home.partners.h2Text'), href: '/partners/#moest' },
+  { icon: 'scroll-text', title: t('home.partners.h3'), text: t('home.partners.h3Text'), href: '/partners/#records' },
+] as const;
+---
+
+<BaseLayout>
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container hero-grid">
+      <div class="hero-text">
+        <p class="eyebrow">{t('home.eyebrow')}</p>
+        <h1>{t('home.title')}</h1>
+        <p class="lead">{t('home.lead')}</p>
+        <div class="btn-row">
+          <a class="btn btn-primary" href={L('/programmes/')}>{t('cta.programmes')} <Icon name="arrow-right" size={18} /></a>
+          <a class="btn btn-outline" href={L('/contact/#get-involved')}>{t('cta.workWithUs')}</a>
+        </div>
+        <p class="motto"><span>{tr(org.motto, lang)}</span></p>
+      </div>
+      <div class="hero-media">
+        <div class="photo m-main"><Photo slug="community-cleanup" alt={caption('community-cleanup', lang)} priority sizes="(min-width: 1000px) 560px, 100vw" /></div>
+        <div class="photo m-a"><Photo slug="segregation-pair" alt={caption('segregation-pair', lang)} sizes="(min-width: 1000px) 240px, 45vw" /></div>
+        <div class="photo m-b"><Photo slug="zoo-compost" alt={caption('zoo-compost', lang)} sizes="(min-width: 1000px) 240px, 45vw" /></div>
+        <p class="badge"><Icon name="award" size={22} /><span>{t('home.badge')}</span></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Figures -->
+  <section class="stats" aria-label={tr(org.name, lang)}>
+    <div class="container">
+      <ul class="stat-row">
+        {
+          stats.map((s) => (
+            <li>
+              <strong>{s.value}</strong>
+              <span>{s.label}</span>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+
+  <!-- What we do -->
+  <section class="section">
+    <div class="container">
+      <SectionHead eyebrow={t('home.what.eyebrow')} title={t('home.what.title')} intro={t('home.what.intro')} />
+      <ul class="themes">
+        {
+          themes.map((theme, i) => (
+            <li class:list={['theme', i === 0 && 'is-wide']}>
+              <a href={L(`/programmes/#${theme.id}`)}>
+                <div class="photo theme-photo">
+                  <Photo slug={theme.photo} alt={tr(theme.photoAlt, lang)} sizes="(min-width: 1000px) 400px, 100vw" />
+                </div>
+                <div class="theme-body">
+                  <span class="icon-badge">
+                    <Icon name={theme.icon} size={24} />
+                  </span>
+                  <h3>{tr(theme.title, lang)}</h3>
+                  <p>{tr(theme.summary, lang)}</p>
+                  <span class="link-arrow">
+                    {theme.programmes.length === 1 ? t('home.what.one') : fill(t('home.what.many'), { n: formatDigits(theme.programmes.length, lang) })}
+                    <Icon name="arrow-right" size={16} />
+                  </span>
+                </div>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+
+  <!-- Sorting at home -->
+  <section class="section section-white">
+    <div class="container sort-grid">
+      <div>
+        <SectionHead eyebrow={t('home.sort.eyebrow')} title={t('home.sort.title')} intro={t('home.sort.intro')} />
+        <div class="buckets">
+          {
+            (['green', 'red'] as const).map((key) => (
+              <div class:list={['bucket', `bucket-${key}`]}>
+                <h3>
+                  <span class="dot" aria-hidden="true" />
+                  {tr(sortingGuide[key].label, lang)}
+                </h3>
+                <ul class="check-list">
+                  {sortingGuide[key].items.map((item) => (
+                    <li>
+                      <Icon name="check" size={16} />
+                      <span>{tr(item, lang)}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p class="bucket-note">{tr(sortingGuide[key].note, lang)}</p>
+              </div>
+            ))
+          }
+        </div>
+        <p><a class="link-arrow" href={L('/resources/#sorting')}>{t('cta.guide')} <Icon name="arrow-right" size={16} /></a></p>
+      </div>
+      <div class="photo sort-photo">
+        <Photo slug="bucket-stock" alt={caption('bucket-stock', lang)} sizes="(min-width: 1000px) 520px, 100vw" />
+      </div>
+    </div>
+  </section>
+
+  <!-- Partnerships -->
+  <section class="section">
+    <div class="container">
+      <SectionHead eyebrow={t('home.partners.eyebrow')} title={t('home.partners.title')} intro={t('home.partners.intro')} />
+      <ul class="highlights grid grid-3">
+        {
+          highlights.map((h) => (
+            <li class="card card-pad highlight">
+              <span class="icon-badge icon-badge-blue">
+                <Icon name={h.icon} size={24} />
+              </span>
+              <h3>{h.title}</h3>
+              <p>{h.text}</p>
+              <a class="link-arrow" href={L(h.href)}>
+                {t('cta.readMore')} <Icon name="arrow-right" size={16} />
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+      <ul class="logo-wall" aria-label={t('nav.partners')}>
+        {
+          partnerLogos.map((p) => (
+            <li>
+              <img src={`/images/partners/${p.logo}.webp`} alt={p.name} loading="lazy" decoding="async" />
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+
+  <!-- Quote -->
+  <section class="section-dark quote-band">
+    <div class="container-narrow quote">
+      <Icon name="quote" size={40} />
+      <blockquote>
+        <p>{t('home.quote')}</p>
+      </blockquote>
+      <p class="quote-source">— {t('home.quoteSource')}</p>
+    </div>
+  </section>
+
+  <!-- Journey -->
+  <section class="section section-white">
+    <div class="container">
+      <SectionHead eyebrow={t('home.journey.eyebrow')} title={t('home.journey.title')} />
+      <ol class="journey">
+        {
+          journey.map((m) => (
+            <li>
+              <span class="year">{formatDigits(tr(m.year, lang), lang)}</span>
+              <h3>{tr(m.title, lang)}</h3>
+              <p>{tr(m.text, lang)}</p>
+            </li>
+          ))
+        }
+      </ol>
+      <p class="more"><a class="btn btn-outline" href={L('/about/#timeline')}>{t('cta.ourStory')} <Icon name="arrow-right" size={18} /></a></p>
+    </div>
+  </section>
+
+  <!-- From the field -->
+  <section class="section">
+    <div class="container">
+      <SectionHead eyebrow={t('home.field.eyebrow')} title={t('home.field.title')} />
+      <ul class="grid grid-3 field">
+        {
+          field.map((a) => (
+            <li class="card field-card">
+              <div class="photo ratio-3-2">
+                <Photo slug={a.photos[0]} alt={caption(a.photos[0], lang)} sizes="(min-width: 1000px) 380px, 100vw" />
+              </div>
+              <div class="card-pad field-body">
+                <p class="date">
+                  <Icon name="calendar" size={16} />
+                  {formatDate(a.date!, lang)}
+                </p>
+                <h3>{tr(a.title, lang)}</h3>
+                <a class="link-arrow" href={L(`/activities/#${a.id}`)}>
+                  {t('cta.readMore')} <Icon name="arrow-right" size={16} />
+                </a>
+              </div>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+
+  <!-- Documentary -->
+  <section class="section section-blue">
+    <div class="container video-grid">
+      <div>
+        <SectionHead eyebrow={t('home.video.eyebrow')} title={t('home.video.title')} intro={t('home.video.text')} />
+      </div>
+      <YouTube id={org.documentaryId} title="NEPCEMAC documentary" playLabel={t('home.video.play')} />
+    </div>
+  </section>
+
+  <!-- Call to action -->
+  <section class="section">
+    <div class="container">
+      <div class="cta">
+        <div>
+          <h2>{t('home.cta.title')}</h2>
+          <p>{t('home.cta.text')}</p>
+        </div>
+        <div class="btn-row">
+          <a class="btn btn-light" href={L('/contact/#get-involved')}>{t('cta.workWithUs')}</a>
+          <a class="btn btn-ghost-light" href={`mailto:${org.email}`}><Icon name="mail" size={18} /> {org.email}</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  /* Hero */
+  .hero {
+    padding-block: clamp(2.5rem, 6vw, 4.5rem) clamp(3rem, 7vw, 5rem);
+    background:
+      radial-gradient(800px 380px at 105% -5%, var(--blue-50), transparent 70%),
+      radial-gradient(700px 420px at -10% 110%, var(--green-50), transparent 70%),
+      var(--paper);
+    overflow: hidden;
+  }
+
+  .hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: center;
+  }
+
+  .hero-text {
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  .hero h1 {
+    font-size: var(--step-4);
+  }
+
+  .motto {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--green-600);
+    font-family: var(--font-head);
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+
+  .motto::before {
+    content: '';
+    width: 2.5rem;
+    height: 3px;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--blue), var(--green-500));
+  }
+
+  .hero-media {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 0.85rem;
+  }
+
+  .m-main {
+    grid-column: 1 / -1;
+    aspect-ratio: 16 / 10;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .m-a,
+  .m-b {
+    aspect-ratio: 4 / 3;
+    box-shadow: var(--shadow);
+  }
+
+  .badge {
+    position: absolute;
+    left: clamp(-1rem, -2vw, 0rem);
+    top: 58%;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    max-width: 260px;
+    padding: 0.7rem 1rem;
+    border-radius: 14px;
+    background: #fff;
+    color: var(--ink);
+    font-weight: 600;
+    line-height: 1.35;
+    font-size: 0.92rem;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .badge :global(.icon) {
+    flex: none;
+    color: #b7861c;
+  }
+
+  /* Stats */
+  .stats {
+    background: var(--green);
+    color: #fff;
+  }
+
+  .stat-row {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .stat-row li {
+    display: grid;
+    gap: 0.2rem;
+    padding: clamp(1.4rem, 3vw, 2rem) clamp(0.75rem, 2vw, 1.5rem);
+    border-left: 1px solid rgb(255 255 255 / 0.18);
+  }
+
+  .stat-row li:first-child {
+    border-left: 0;
+    padding-left: 0;
+  }
+
+  .stat-row strong {
+    font-family: var(--font-head);
+    font-size: var(--step-3);
+    font-weight: 700;
+    line-height: 1.1;
+  }
+
+  .stat-row span {
+    color: #d8ead0;
+    font-size: var(--step--1);
+    line-height: 1.4;
+  }
+
+  /* Themes */
+  .themes {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem;
+  }
+
+  .theme a {
+    display: grid;
+    height: 100%;
+    overflow: hidden;
+    border-radius: var(--radius);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: inherit;
+    text-decoration: none;
+    transition: box-shadow 0.25s var(--ease), translate 0.25s var(--ease);
+  }
+
+  .theme a:hover {
+    box-shadow: var(--shadow);
+    translate: 0 -3px;
+  }
+
+  .theme-photo {
+    aspect-ratio: 16 / 9;
+    border-radius: 0;
+  }
+
+  .theme-body {
+    display: grid;
+    gap: 0.6rem;
+    align-content: start;
+    padding: 0 1.4rem 1.4rem;
+    margin-top: -24px;
+  }
+
+  .theme-body .icon-badge {
+    position: relative;
+    background: #fff;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .theme-body p {
+    color: var(--muted);
+  }
+
+  .is-wide {
+    grid-column: span 2;
+  }
+
+  .is-wide a {
+    grid-template-columns: 1.1fr 1fr;
+  }
+
+  .is-wide .theme-photo {
+    aspect-ratio: auto;
+    height: 100%;
+    min-height: 260px;
+  }
+
+  .is-wide .theme-body {
+    margin-top: 0;
+    padding: 1.6rem;
+    align-content: center;
+  }
+
+  /* Sorting */
+  .sort-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: center;
+  }
+
+  .sort-grid :global(.section-head) {
+    margin-bottom: 1.75rem;
+  }
+
+  .buckets {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .bucket {
+    display: grid;
+    gap: 0.85rem;
+    align-content: start;
+    padding: 1.25rem;
+    border-radius: var(--radius);
+    border: 1px solid;
+  }
+
+  .bucket h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 1.05rem;
+  }
+
+  .dot {
+    flex: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+  }
+
+  .bucket-green {
+    background: var(--green-50);
+    border-color: var(--green-100);
+  }
+
+  .bucket-green .dot {
+    background: var(--green-500);
+  }
+
+  .bucket-red {
+    background: var(--bucket-red-50);
+    border-color: #f4d6d1;
+  }
+
+  .bucket-red .dot {
+    background: var(--bucket-red);
+  }
+
+  .bucket-red :global(.check-list .icon) {
+    color: var(--bucket-red);
+  }
+
+  .bucket-note {
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  .sort-photo {
+    aspect-ratio: 1;
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* Partners */
+  .highlights {
+    list-style: none;
+  }
+
+  .highlight {
+    display: grid;
+    gap: 0.75rem;
+    align-content: start;
+  }
+
+  .highlight p {
+    color: var(--muted);
+  }
+
+  .logo-wall {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.75rem;
+    margin-top: 2rem;
+  }
+
+  .logo-wall li {
+    display: grid;
+    place-items: center;
+    height: 96px;
+    padding: 0.8rem;
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    border: 1px solid var(--line);
+  }
+
+  .logo-wall img {
+    max-height: 64px;
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
+  }
+
+  /* Quote */
+  .quote-band {
+    padding-block: clamp(3.5rem, 7vw, 5.5rem);
+  }
+
+  .quote {
+    display: grid;
+    gap: 1.25rem;
+    justify-items: center;
+    text-align: center;
+  }
+
+  .quote :global(.icon) {
+    color: var(--green-300);
+  }
+
+  blockquote {
+    margin: 0;
+    font-family: var(--font-head);
+    font-size: var(--step-3);
+    font-weight: 600;
+    line-height: 1.3;
+    color: #fff;
+    text-wrap: balance;
+  }
+
+  :lang(ne) blockquote {
+    line-height: 1.55;
+  }
+
+  .quote-source {
+    color: #bfd2b8;
+    font-size: var(--step--1);
+  }
+
+  /* Journey */
+  .journey {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 1rem;
+    position: relative;
+  }
+
+  .journey::before {
+    content: '';
+    position: absolute;
+    top: 1.05rem;
+    left: 0;
+    right: 0;
+    height: 3px;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--green-500), var(--blue));
+  }
+
+  .journey li {
+    position: relative;
+    display: grid;
+    gap: 0.5rem;
+    align-content: start;
+    padding-top: 3rem;
+  }
+
+  .journey li::before {
+    content: '';
+    position: absolute;
+    top: 0.45rem;
+    left: 0;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    border: 4px solid var(--green);
+  }
+
+  .year {
+    font-family: var(--font-head);
+    font-weight: 700;
+    font-size: var(--step-2);
+    color: var(--green);
+    line-height: 1;
+  }
+
+  .journey h3 {
+    font-size: 1.02rem;
+  }
+
+  .journey p {
+    color: var(--muted);
+    font-size: var(--step--1);
+  }
+
+  .more {
+    margin-top: 2.25rem;
+  }
+
+  /* Field */
+  .field {
+    list-style: none;
+  }
+
+  .field-card {
+    overflow: hidden;
+    display: grid;
+    grid-template-rows: auto 1fr;
+  }
+
+  .field-card .photo {
+    border-radius: 0;
+  }
+
+  .field-body {
+    display: grid;
+    gap: 0.6rem;
+    align-content: start;
+  }
+
+  .field-body .link-arrow {
+    align-self: end;
+  }
+
+  .date {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--muted);
+    font-size: var(--step--1);
+  }
+
+  /* Video */
+  .video-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: center;
+  }
+
+  /* CTA */
+  .cta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem 3rem;
+    padding: clamp(2rem, 5vw, 3.25rem);
+    border-radius: var(--radius-lg);
+    background:
+      radial-gradient(600px 300px at 100% 0%, rgb(68 124 204 / 0.45), transparent 70%),
+      var(--green);
+    color: #e6f1e0;
+  }
+
+  .cta > div:first-child {
+    display: grid;
+    gap: 0.75rem;
+    max-width: 640px;
+  }
+
+  .cta h2 {
+    color: #fff;
+    font-size: var(--step-3);
+  }
+
+  @media (max-width: 1000px) {
+    .hero-grid,
+    .sort-grid,
+    .video-grid {
+      grid-template-columns: 1fr;
+    }
+    .themes {
+      grid-template-columns: 1fr 1fr;
+    }
+    .journey {
+      grid-template-columns: repeat(3, 1fr);
+      row-gap: 2rem;
+    }
+    .journey::before {
+      display: none;
+    }
+    .sort-photo {
+      aspect-ratio: 16 / 10;
+    }
+    .badge {
+      left: 0.75rem;
+      top: auto;
+      bottom: calc(50% - 1rem);
+    }
+  }
+
+  @media (max-width: 860px) {
+    .logo-wall {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  @media (max-width: 700px) {
+    .logo-wall {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .stat-row {
+      grid-template-columns: 1fr 1fr;
+    }
+    .stat-row li:nth-child(odd) {
+      border-left: 0;
+      padding-left: 0;
+    }
+    .stat-row li:nth-child(n + 3) {
+      border-top: 1px solid rgb(255 255 255 / 0.18);
+    }
+    .themes {
+      grid-template-columns: 1fr;
+    }
+    .is-wide {
+      grid-column: auto;
+    }
+    .is-wide a {
+      grid-template-columns: 1fr;
+    }
+    .is-wide .theme-photo {
+      aspect-ratio: 16 / 9;
+      min-height: 0;
+    }
+    .is-wide .theme-body {
+      padding: 0 1.4rem 1.4rem;
+      margin-top: -24px;
+    }
+    .buckets {
+      grid-template-columns: 1fr;
+    }
+    .journey {
+      grid-template-columns: 1fr 1fr;
+    }
+    .badge {
+      position: static;
+      grid-column: 1 / -1;
+      max-width: none;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--line);
+    }
+  }
+</style>

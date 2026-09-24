@@ -1,0 +1,625 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import Icon from '~/components/Icon.astro';
+import Photo from '~/components/Photo.astro';
+import PageHero from '~/components/PageHero.astro';
+import SectionHead from '~/components/SectionHead.astro';
+import { circle, legal } from '~/data/site';
+import { intro, vision, mission, goals, values, objectives, milestones, structure } from '~/data/about';
+import { caption } from '~/data/photos';
+import { formatDate, formatDigits, localizePath, tr, useTranslations, type Lang } from '~/i18n/utils';
+
+type Props = { lang: Lang };
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+
+const legalRows = [
+  { label: t('about.legal.registration'), rec: legal.registration },
+  { label: t('about.legal.swc'), rec: legal.swc },
+  { label: t('about.legal.pan'), rec: legal.pan },
+];
+---
+
+<BaseLayout title={t('about.title')} description={tr(intro[1], lang)}>
+  <PageHero eyebrow={t('nav.about')} title={t('about.title')} lead={t('about.lead')} photo="environment-day-2012" photoAlt={caption('environment-day-2012', lang)} />
+
+  <!-- Background -->
+  <section class="section section-white">
+    <div class="container intro-grid">
+      <div class="prose intro-text">
+        {intro.map((p, i) => <p class:list={[i === 0 && 'first']}>{tr(p, lang)}</p>)}
+      </div>
+      <div class="intro-photos">
+        <div class="photo"><Photo slug="street-awareness" alt={caption('street-awareness', lang)} sizes="(min-width: 1000px) 420px, 100vw" /></div>
+        <div class="photo"><Photo slug="training-certificates" alt={caption('training-certificates', lang)} sizes="(min-width: 1000px) 420px, 100vw" /></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Vision, mission, goals -->
+  <section class="section section-tight">
+    <div class="container vmg">
+      <article class="card card-pad vm vision">
+        <span class="icon-badge"><Icon name="globe" size={24} /></span>
+        <h2>{t('about.visionTitle')}</h2>
+        <p class="big">{tr(vision, lang)}</p>
+      </article>
+      <article class="card card-pad vm">
+        <span class="icon-badge icon-badge-blue"><Icon name="hand-heart" size={24} /></span>
+        <h2>{t('about.missionTitle')}</h2>
+        <ul class="check-list">
+          {mission.map((m) => <li><Icon name="check" size={16} /><span>{tr(m, lang)}</span></li>)}
+        </ul>
+      </article>
+      <article class="card card-pad vm">
+        <span class="icon-badge"><Icon name="sprout" size={24} /></span>
+        <h2>{t('about.goalsTitle')}</h2>
+        <ul class="check-list">
+          {goals.map((g) => <li><Icon name="check" size={16} /><span>{tr(g, lang)}</span></li>)}
+        </ul>
+      </article>
+    </div>
+  </section>
+
+  <!-- Values -->
+  <section class="section section-white">
+    <div class="container">
+      <SectionHead eyebrow={t('about.valuesEyebrow')} title={t('about.valuesTitle')} />
+      <ul class="values">
+        {
+          values.map((v, i) => (
+            <li>
+              <span class="num">{formatDigits(String(i + 1).padStart(2, '0'), lang)}</span>
+              <h3>{tr(v.title, lang)}</h3>
+              <p>{tr(v.text, lang)}</p>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+
+  <!-- Timeline -->
+  <section class="section" id="timeline">
+    <div class="container">
+      <SectionHead eyebrow={t('about.timelineEyebrow')} title={t('about.timelineTitle')} />
+      <ol class="timeline">
+        {
+          milestones.map((m) => (
+            <li class:list={[m.photo && 'has-photo']}>
+              <span class="year">{formatDigits(tr(m.year, lang), lang)}</span>
+              <div class="card tl-card">
+                <div class="tl-text">
+                  <h3>{tr(m.title, lang)}</h3>
+                  <p>{tr(m.text, lang)}</p>
+                </div>
+                {m.photo && (
+                  <div class="photo tl-photo">
+                    <Photo slug={m.photo} alt={caption(m.photo, lang)} sizes="(min-width: 900px) 260px, 100vw" />
+                  </div>
+                )}
+              </div>
+            </li>
+          ))
+        }
+      </ol>
+    </div>
+  </section>
+
+  <!-- Objectives -->
+  <section class="section section-white">
+    <div class="container">
+      <SectionHead eyebrow={t('about.objectivesEyebrow')} title={t('about.objectivesTitle')} />
+      <ol class="objectives">
+        {objectives.map((o) => <li>{tr(o, lang)}</li>)}
+      </ol>
+    </div>
+  </section>
+
+  <!-- Legal and structure -->
+  <section class="section section-tint" id="structure">
+    <div class="container legal-grid">
+      <div>
+        <SectionHead eyebrow={t('about.legalEyebrow')} title={t('about.legalTitle')} intro={t('about.legalIntro')} />
+        <div class="table-wrap card">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col"></th>
+                <th scope="col">{t('about.legal.number')}</th>
+                <th scope="col">{t('about.legal.date')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {
+                legalRows.map((r) => (
+                  <tr>
+                    <th scope="row">
+                      {r.label}
+                      <span class="office">{tr(r.rec.office, lang)}</span>
+                    </th>
+                    <td>{formatDigits(r.rec.number, lang)}</td>
+                    <td>
+                      {lang === 'en' ? formatDate(r.rec.dateAd, 'en') : tr(r.rec.dateBs, lang)}
+                      {lang === 'en' && <span class="office">{r.rec.dateBs.en}</span>}
+                    </td>
+                  </tr>
+                ))
+              }
+            </tbody>
+          </table>
+        </div>
+        <p class="small muted health">{t('about.legal.health')}</p>
+      </div>
+
+      <div>
+        <SectionHead eyebrow={t('about.structureEyebrow')} title={t('about.structureTitle')} intro={t('about.structureIntro')} />
+        <div class="org-chart" role="img" aria-label={[...structure.top, structure.advisory, ...structure.departments].map((x) => tr(x, lang)).join(', ')}>
+          {
+            structure.top.map((node, i) => (
+              <div class="org-level">
+                <span class:list={['node', i === 0 && 'node-top']}>{tr(node, lang)}</span>
+                {i === 1 && <span class="node node-side">{tr(structure.advisory, lang)}</span>}
+              </div>
+            ))
+          }
+          <div class="org-depts">
+            {structure.departments.map((d) => <span class="node node-dept">{tr(d, lang)}</span>)}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Circle -->
+  <section class="section section-white">
+    <div class="container">
+      <SectionHead eyebrow={t('about.circleEyebrow')} title={t('about.circleTitle')} intro={t('about.circleIntro')} />
+      <ul class="grid grid-4 circle">
+        {
+          circle.map((c) => (
+            <li class="card card-pad circle-card">
+              <img src={`/images/partners/${c.logo}.webp`} alt="" loading="lazy" />
+              <h3>{tr(c.name, lang)}</h3>
+              <p class="muted small">{tr(c.note, lang)}</p>
+              {c.href && (
+                <a class="link-arrow" href={c.href} target="_blank" rel="noopener">
+                  {c.href.includes('facebook.com') ? t('common.facebook') : c.href.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}
+                  <Icon name="arrow-up-right" size={16} />
+                </a>
+              )}
+            </li>
+          ))
+        }
+      </ul>
+      <p class="team-link"><a class="btn btn-outline" href={localizePath('/team/', lang)}>{t('cta.meetTeam')} <Icon name="arrow-right" size={18} /></a></p>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .intro-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: start;
+  }
+
+  .intro-text {
+    font-size: var(--step-0);
+  }
+
+  .intro-text .first {
+    font-size: var(--step-1);
+    color: var(--ink);
+    line-height: 1.55;
+  }
+
+  .intro-photos {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .intro-photos .photo {
+    aspect-ratio: 4 / 3;
+  }
+
+  .intro-photos .photo:nth-child(2) {
+    width: 82%;
+    justify-self: end;
+    margin-top: -3rem;
+    border: 6px solid #fff;
+    box-shadow: var(--shadow);
+  }
+
+  .vmg {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr 1fr;
+    gap: 1.25rem;
+  }
+
+  .vm {
+    display: grid;
+    gap: 0.9rem;
+    align-content: start;
+  }
+
+  .vm h2 {
+    font-size: var(--step-1);
+  }
+
+  .vision {
+    background: linear-gradient(160deg, var(--green), var(--green-800));
+    border-color: transparent;
+    color: #e5f0df;
+  }
+
+  .vision h2 {
+    color: #fff;
+  }
+
+  .vision .icon-badge {
+    background: rgb(255 255 255 / 0.12);
+    border-color: rgb(255 255 255 / 0.2);
+    color: #fff;
+  }
+
+  .big {
+    font-family: var(--font-head);
+    font-size: var(--step-2);
+    font-weight: 600;
+    line-height: 1.3;
+    color: #fff;
+  }
+
+  :lang(ne) .big {
+    line-height: 1.55;
+  }
+
+  .values {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.25rem;
+  }
+
+  .values li {
+    display: grid;
+    gap: 0.5rem;
+    align-content: start;
+    padding-top: 1.1rem;
+    border-top: 3px solid var(--green-100);
+  }
+
+  .num {
+    font-family: var(--font-head);
+    font-weight: 700;
+    color: var(--blue);
+  }
+
+  .values p {
+    color: var(--muted);
+  }
+
+  /* Timeline */
+  .timeline {
+    list-style: none;
+    position: relative;
+    display: grid;
+    gap: 1.1rem;
+    max-width: 920px;
+  }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 5.4rem;
+    top: 0.5rem;
+    bottom: 0.5rem;
+    width: 3px;
+    border-radius: 3px;
+    background: linear-gradient(180deg, var(--green-500), var(--blue));
+  }
+
+  .timeline li {
+    position: relative;
+    display: grid;
+    grid-template-columns: 4.4rem 1fr;
+    gap: 2.2rem;
+    align-items: start;
+  }
+
+  .timeline li::before {
+    content: '';
+    position: absolute;
+    left: calc(5.4rem - 7px);
+    top: 1.35rem;
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    background: #fff;
+    border: 4px solid var(--green);
+  }
+
+  .year {
+    padding-top: 0.95rem;
+    text-align: right;
+    font-family: var(--font-head);
+    font-weight: 700;
+    font-size: var(--step-1);
+    color: var(--green);
+  }
+
+  .tl-card {
+    display: grid;
+    grid-template-columns: 1fr;
+    overflow: hidden;
+  }
+
+  .has-photo .tl-card {
+    grid-template-columns: 1fr 240px;
+  }
+
+  .tl-text {
+    display: grid;
+    gap: 0.4rem;
+    align-content: start;
+    padding: 1.1rem 1.35rem 1.25rem;
+  }
+
+  .tl-text h3 {
+    font-size: 1.08rem;
+  }
+
+  .tl-text p {
+    color: var(--muted);
+  }
+
+  .tl-photo {
+    border-radius: 0;
+    height: 100%;
+    min-height: 150px;
+  }
+
+  /* Objectives */
+  .objectives {
+    counter-reset: obj;
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+    gap: 0.75rem 2.5rem;
+  }
+
+  .objectives li {
+    counter-increment: obj;
+    display: grid;
+    grid-template-columns: 2.25rem 1fr;
+    gap: 0.5rem;
+    padding-block: 0.75rem;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .objectives li::before {
+    content: counter(obj, decimal-leading-zero);
+    font-family: var(--font-head);
+    font-weight: 700;
+    color: var(--green-600);
+  }
+
+  :lang(ne) .objectives li::before {
+    content: counter(obj, devanagari);
+  }
+
+  /* Legal & structure */
+  .legal-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: start;
+  }
+
+  .legal-grid :global(.section-head) {
+    margin-bottom: 1.75rem;
+  }
+
+  .legal-grid :global(.section-head h2) {
+    font-size: var(--step-2);
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--step--1);
+  }
+
+  th,
+  td {
+    padding: 0.85rem 1rem;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid var(--line);
+  }
+
+  thead th {
+    background: var(--green-50);
+    color: var(--green-800);
+    font-weight: 600;
+  }
+
+  tbody tr:last-child :is(th, td) {
+    border-bottom: 0;
+  }
+
+  tbody th {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  td:nth-child(2) {
+    font-family: var(--font-head);
+    font-weight: 600;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+
+  .office {
+    display: block;
+    color: var(--muted);
+    font-weight: 400;
+    font-family: var(--font-sans);
+  }
+
+  .health {
+    margin-top: 1rem;
+  }
+
+  .org-chart {
+    display: grid;
+    gap: 0.9rem;
+    justify-items: center;
+    padding: 1.5rem;
+    border-radius: var(--radius);
+    background: var(--surface);
+    border: 1px solid var(--line);
+  }
+
+  .org-level {
+    position: relative;
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .org-level + .org-level::before,
+  .org-depts::before {
+    content: '';
+    position: absolute;
+    top: -0.9rem;
+    left: 50%;
+    width: 2px;
+    height: 0.9rem;
+    background: var(--line-strong);
+  }
+
+  .org-depts {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    padding-top: 0.9rem;
+    border-top: 2px solid var(--line-strong);
+  }
+
+  .node {
+    padding: 0.55rem 1rem;
+    border-radius: 12px;
+    background: var(--green-50);
+    border: 1px solid var(--green-100);
+    color: var(--green-900);
+    font-weight: 600;
+    text-align: center;
+    font-size: 0.95rem;
+  }
+
+  .node-top {
+    background: var(--green);
+    border-color: var(--green);
+    color: #fff;
+  }
+
+  .node-side {
+    background: var(--blue-50);
+    border: 1px dashed var(--blue);
+    color: var(--blue-800);
+  }
+
+  .node-dept {
+    background: #fff;
+    border-color: var(--line-strong);
+    color: var(--ink);
+    font-weight: 400;
+    font-size: 0.9rem;
+  }
+
+  /* Circle */
+  .circle {
+    list-style: none;
+  }
+
+  .circle-card {
+    display: grid;
+    gap: 0.5rem;
+    align-content: start;
+  }
+
+  .circle-card img {
+    height: 76px;
+    width: auto;
+    margin-bottom: 0.4rem;
+  }
+
+  .circle-card h3 {
+    font-size: 1.05rem;
+  }
+
+  .team-link {
+    margin-top: 2rem;
+  }
+
+  @media (max-width: 1000px) {
+    .intro-grid,
+    .legal-grid {
+      grid-template-columns: 1fr;
+    }
+    .vmg {
+      grid-template-columns: 1fr;
+    }
+    .values {
+      grid-template-columns: 1fr 1fr;
+    }
+    .intro-photos {
+      grid-template-columns: 1fr 1fr;
+    }
+    .intro-photos .photo:nth-child(2) {
+      width: auto;
+      margin-top: 0;
+      border: 0;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .values {
+      grid-template-columns: 1fr;
+    }
+    .timeline::before {
+      left: 0.5rem;
+    }
+    .timeline li {
+      grid-template-columns: 1fr;
+      gap: 0.4rem;
+      padding-left: 2rem;
+    }
+    .timeline li::before {
+      left: calc(0.5rem - 7px);
+      top: 0.3rem;
+    }
+    .year {
+      text-align: left;
+      padding-top: 0;
+    }
+    .has-photo .tl-card {
+      grid-template-columns: 1fr;
+    }
+    .tl-photo {
+      aspect-ratio: 16 / 9;
+      min-height: 0;
+    }
+  }
+</style>

@@ -1,0 +1,102 @@
+---
+import type { Person } from '~/data/team';
+import { tr, type Lang } from '~/i18n/utils';
+
+type Props = { person: Person; lang: Lang; highlight?: boolean };
+const { person, lang, highlight = false } = Astro.props;
+const name = tr(person.name, lang);
+// Initials from the English name, skipping titles like "Dr."
+const initials = person.name.en
+  .replace(/^Dr\.\s*/, '')
+  .split(/\s+/)
+  .filter(Boolean)
+  .map((w) => w[0])
+  .filter((_, i, all) => i === 0 || i === all.length - 1)
+  .join('');
+---
+
+<article class:list={['person', highlight && 'is-highlight']}>
+  {
+    person.photo ? (
+      <img src={`/images/team/${person.photo}.webp`} width="360" height="360" alt={name} loading="lazy" decoding="async" />
+    ) : (
+      <span class="initials" aria-hidden="true">
+        {initials}
+      </span>
+    )
+  }
+  <div class="text">
+    <h3>{name}</h3>
+    <p class="role">{tr(person.role, lang)}</p>
+    {person.note && <p class="note">{tr(person.note, lang)}</p>}
+  </div>
+</article>
+
+<style>
+  .person {
+    display: grid;
+    gap: 0.9rem;
+    align-content: start;
+    padding: 0.75rem 0.75rem 1.1rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    text-align: center;
+    transition: box-shadow 0.25s var(--ease), translate 0.25s var(--ease);
+  }
+
+  .person:hover {
+    box-shadow: var(--shadow);
+    translate: 0 -2px;
+  }
+
+  img,
+  .initials {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: calc(var(--radius) - 6px);
+    object-fit: cover;
+    background: var(--green-100);
+  }
+
+  .initials {
+    display: grid;
+    place-items: center;
+    font-family: var(--font-head);
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-weight: 600;
+    color: var(--green);
+    background:
+      radial-gradient(circle at 30% 20%, #fff 0, transparent 60%),
+      linear-gradient(135deg, var(--green-100), var(--blue-100));
+  }
+
+  .text {
+    display: grid;
+    gap: 0.15rem;
+  }
+
+  h3 {
+    font-size: 1.02rem;
+  }
+
+  :lang(ne) h3 {
+    font-size: 1.12rem;
+  }
+
+  .role {
+    color: var(--green-600);
+    font-weight: 600;
+    font-size: 0.93rem;
+  }
+
+  .note {
+    color: var(--muted);
+    font-size: 0.88rem;
+  }
+
+  .is-highlight {
+    border-color: var(--green-200);
+    background: linear-gradient(180deg, var(--green-50), var(--surface) 60%);
+  }
+</style>

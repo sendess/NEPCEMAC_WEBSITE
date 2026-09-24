@@ -1,0 +1,261 @@
+---
+import Icon from './Icon.astro';
+import { nav } from '~/data/site';
+import { localizePath, stripLang, useTranslations, type Lang } from '~/i18n/utils';
+
+type Props = { lang: Lang };
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+
+const current = stripLang(Astro.url.pathname).replace(/\/?$/, '/');
+const isActive = (href: string) => current === href || (href !== '/' && current.startsWith(href));
+const otherLang: Lang = lang === 'en' ? 'ne' : 'en';
+// The 404 page has no Nepali twin, so its switch goes to the other language's home page.
+const basePath = stripLang(Astro.url.pathname);
+const switchHref = localizePath(basePath.startsWith('/404') ? '/' : basePath, otherLang);
+---
+
+<header class="site-header" data-header>
+  <div class="container bar">
+    <a class="brand" href={localizePath('/', lang)} aria-label={t('site.home')}>
+      <img
+        src="/images/logo-104.webp"
+        srcset="/images/logo-104.webp 1x, /images/logo-208.webp 2x"
+        width="264"
+        height="104"
+        alt="NEPCEMAC — Clean City, Civilized Citizen & Healthy Society"
+      />
+    </a>
+
+    <nav class="nav" id="site-nav" aria-label={t('site.menu')}>
+      <ul>
+        {
+          nav.map((item) => (
+            <li>
+              <a href={localizePath(item.href, lang)} aria-current={isActive(item.href) ? 'page' : undefined}>
+                {t(`nav.${item.key}`)}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+      <div class="nav-extra">
+        <a class="lang" href={switchHref} hreflang={otherLang} lang={otherLang} title={t('site.langSwitchLabel')}>
+          <Icon name="globe" size={18} />
+          {t('site.langSwitch')}
+        </a>
+        <a class="btn btn-primary btn-sm" href={localizePath('/contact/', lang)} aria-current={isActive('/contact/') ? 'page' : undefined}>
+          {t('nav.contact')}
+        </a>
+      </div>
+    </nav>
+
+    <button class="menu-toggle" type="button" aria-controls="site-nav" aria-expanded="false" data-menu-toggle>
+      <span class="when-closed"><Icon name="menu" size={22} /></span>
+      <span class="when-open"><Icon name="x" size={22} /></span>
+      <span class="visually-hidden" data-label-open>{t('site.menu')}</span>
+    </button>
+  </div>
+</header>
+
+<script>
+  const header = document.querySelector<HTMLElement>('[data-header]');
+  const toggle = header?.querySelector<HTMLButtonElement>('[data-menu-toggle]');
+  if (header && toggle) {
+    const setOpen = (open: boolean) => {
+      header.toggleAttribute('data-open', open);
+      toggle.setAttribute('aria-expanded', String(open));
+      document.documentElement.classList.toggle('menu-open', open);
+    };
+    toggle.addEventListener('click', () => setOpen(!header.hasAttribute('data-open')));
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && header.hasAttribute('data-open')) {
+        setOpen(false);
+        toggle.focus();
+      }
+    });
+    matchMedia('(min-width: 1041px)').addEventListener('change', (e) => e.matches && setOpen(false));
+  }
+  // A thin shadow once the page scrolls under the header.
+  const onScroll = () => header?.toggleAttribute('data-scrolled', scrollY > 8);
+  addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+</script>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgb(255 255 255 / 0.94);
+    backdrop-filter: saturate(1.4) blur(10px);
+    border-bottom: 1px solid transparent;
+    transition:
+      border-color 0.2s var(--ease),
+      box-shadow 0.2s var(--ease);
+  }
+
+  .site-header[data-scrolled] {
+    border-bottom-color: var(--line);
+    box-shadow: 0 6px 20px -16px rgb(14 38 8 / 0.5);
+  }
+
+  .bar {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    min-height: var(--header-h);
+  }
+
+  .brand {
+    flex: none;
+    display: block;
+    padding-block: 0.6rem;
+  }
+
+  .brand img {
+    width: auto;
+    height: 50px;
+  }
+
+  .nav {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    gap: 1rem;
+  }
+
+  .nav ul {
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
+    list-style: none;
+    margin-inline: auto;
+  }
+
+  .nav ul a {
+    display: block;
+    padding: 0.5rem 0.7rem;
+    border-radius: 999px;
+    color: var(--ink);
+    font-family: var(--font-head);
+    font-size: 0.93rem;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  :lang(ne) .nav ul a {
+    font-family: var(--font-sans);
+    font-size: 1.05rem;
+  }
+
+  .nav ul a:hover {
+    background: var(--green-50);
+    color: var(--green);
+  }
+
+  .nav ul a[aria-current='page'] {
+    background: var(--green-50);
+    color: var(--green);
+    box-shadow: inset 0 0 0 1px var(--green-100);
+  }
+
+  .nav-extra {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .lang {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.45rem 0.75rem;
+    border-radius: 999px;
+    border: 1px solid var(--line-strong);
+    color: var(--ink);
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .lang:hover {
+    border-color: var(--blue);
+    color: var(--blue-700);
+  }
+
+  .menu-toggle {
+    display: none;
+    margin-left: auto;
+    width: 46px;
+    height: 46px;
+    place-items: center;
+    border-radius: 12px;
+    border: 1px solid var(--line-strong);
+    background: var(--surface);
+    color: var(--ink);
+  }
+
+  .when-open {
+    display: none;
+  }
+
+  @media (max-width: 1040px) {
+    .menu-toggle {
+      display: grid;
+    }
+
+    .nav {
+      display: none;
+      position: fixed;
+      inset: var(--header-h) 0 0 0;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 1.25rem;
+      padding: 1.25rem var(--gutter) 2rem;
+      background: var(--surface);
+      overflow-y: auto;
+      border-top: 1px solid var(--line);
+    }
+
+    [data-open] .nav {
+      display: flex;
+    }
+
+    [data-open] .when-open {
+      display: block;
+    }
+
+    [data-open] .when-closed {
+      display: none;
+    }
+
+    .nav ul {
+      flex-direction: column;
+      align-items: stretch;
+      margin: 0;
+      gap: 0.25rem;
+    }
+
+    .nav ul a {
+      padding: 0.85rem 1rem;
+      border-radius: var(--radius-sm);
+      font-size: 1.1rem;
+    }
+
+    .nav-extra {
+      justify-content: space-between;
+      padding-top: 1rem;
+      border-top: 1px solid var(--line);
+    }
+
+    .nav-extra .btn {
+      flex: 1;
+    }
+  }
+
+  :global(html.menu-open) {
+    overflow: hidden;
+  }
+</style>

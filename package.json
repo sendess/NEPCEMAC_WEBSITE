@@ -1,0 +1,27 @@
+{
+  "name": "nepcemac-site",
+  "version": "2.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check"
+  },
+  "dependencies": {
+    "@astrojs/sitemap": "^3.7.4",
+    "@lucide/astro": "^1.46.0",
+    "astro": "^7.3.3",
+    "leaflet": "^1.9.4",
+    "nepali-date-converter": "^3.4.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@types/leaflet": "^1.9.22",
+    "sharp": "^0.34.0",
+    "typescript": "^6.0.3"
+  }
+}

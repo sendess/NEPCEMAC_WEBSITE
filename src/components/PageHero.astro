@@ -1,0 +1,79 @@
+---
+import Photo from './Photo.astro';
+
+type Props = {
+  eyebrow?: string;
+  title: string;
+  lead?: string;
+  photo?: string;
+  photoAlt?: string;
+};
+const { eyebrow, title, lead, photo, photoAlt = '' } = Astro.props;
+---
+
+<section class:list={['page-hero', photo && 'has-photo']}>
+  <div class="container inner">
+    <div class="text">
+      {eyebrow && <p class="eyebrow">{eyebrow}</p>}
+      <h1>{title}</h1>
+      {lead && <p class="lead">{lead}</p>}
+      <slot />
+    </div>
+    {
+      photo && (
+        <div class="photo hero-photo">
+          <Photo slug={photo} alt={photoAlt} priority sizes="(min-width: 900px) 480px, 100vw" />
+        </div>
+      )
+    }
+  </div>
+</section>
+
+<style>
+  .page-hero {
+    position: relative;
+    padding-block: clamp(2.75rem, 7vw, 5rem) clamp(2.5rem, 6vw, 4rem);
+    background:
+      radial-gradient(700px 320px at 100% 0%, var(--blue-50), transparent 70%),
+      radial-gradient(600px 300px at 0% 100%, var(--green-50), transparent 70%),
+      var(--paper);
+    border-bottom: 1px solid var(--line);
+    overflow: hidden;
+  }
+
+  .inner {
+    display: grid;
+    gap: clamp(1.75rem, 4vw, 3rem);
+    align-items: center;
+  }
+
+  .has-photo .inner {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  }
+
+  .text {
+    display: grid;
+    gap: 1rem;
+    max-width: 760px;
+  }
+
+  h1 {
+    font-size: var(--step-4);
+  }
+
+  .hero-photo {
+    aspect-ratio: 4 / 3;
+    box-shadow: var(--shadow-lg);
+    rotate: 1.2deg;
+  }
+
+  @media (max-width: 860px) {
+    .has-photo .inner {
+      grid-template-columns: 1fr;
+    }
+    .hero-photo {
+      rotate: none;
+      max-height: 280px;
+    }
+  }
+</style>

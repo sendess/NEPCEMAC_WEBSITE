@@ -1,0 +1,57 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import Icon from '~/components/Icon.astro';
+import { nav } from '~/data/site';
+import { localizePath, useTranslations, type Lang } from '~/i18n/utils';
+
+type Props = { lang: Lang };
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+---
+
+<BaseLayout title={t('404.title')} noindex>
+  <section class="section">
+    <div class="container-narrow nf">
+      <p class="code" aria-hidden="true">404</p>
+      <h1>{t('404.title')}</h1>
+      <p class="lead">{t('404.text')}</p>
+      <a class="btn btn-primary" href={localizePath('/', lang)}>{t('cta.backHome')} <Icon name="arrow-right" size={18} /></a>
+      <ul class="chip-list">
+        {
+          nav.map((item) => (
+            <li>
+              <a class="chip" href={localizePath(item.href, lang)}>{t(`nav.${item.key}`)}</a>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .nf {
+    display: grid;
+    gap: 1.25rem;
+    justify-items: start;
+    padding-block: 2rem;
+  }
+
+  .code {
+    font-family: var(--font-head);
+    font-size: clamp(4rem, 12vw, 7rem);
+    font-weight: 700;
+    line-height: 1;
+    background: linear-gradient(90deg, var(--green), var(--blue));
+    background-clip: text;
+    color: transparent;
+  }
+
+  h1 {
+    font-size: var(--step-3);
+  }
+
+  .chip {
+    text-decoration: none;
+  }
+</style>

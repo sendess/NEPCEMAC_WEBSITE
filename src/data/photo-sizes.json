@@ -1,0 +1,220 @@
+{
+ "river-cleanup": {
+  "widths": [
+   720,
+   1400
+  ],
+  "width": 960,
+  "height": 540
+ },
+ "river-cleanup-banner": {
+  "widths": [
+   720,
+   1400
+  ],
+  "width": 960,
+  "height": 528
+ },
+ "river-cleanup-walk": {
+  "widths": [
+   720,
+   1400
+  ],
+  "width": 960,
+  "height": 528
+ },
+ "river-cleanup-crowd": {
+  "widths": [
+   720,
+   1400
+  ],
+  "width": 960,
+  "height": 720
+ },
+ "environment-day-2012": {
+  "widths": [
+   720,
+   1400
+  ],
+  "width": 1400,
+  "height": 1050
+ },
+ "environment-day-2012-group": {
+  "widths": [
+   720,
+   1400
+  ],
+  "width": 1400,
+  "height": 1050
+ },
+ "community-cleanup": {
+  "widths": [
+   720,
+   1400
+  ],
+  "width": 1400,
+  "height": 787
+ },
+ "kmc-ward16-campaign": {
+  "widths": [
+   720,
+   1400
+  ],
+  "width": 1400,
+  "height": 1050
+ },
+ "segregation-buckets": {
+  "widths": [
+   720,
+   1400
+  ],
+  "width": 1400,
+  "height": 849
+ },
+ "segregation-pair": {
+  "widths": [
+   720
+  ],
+  "width": 640,
+  "height": 480
+ },
+ "bucket-handover": {
+  "widths": [
+   720
+  ],
+  "width": 449,
+  "height": 337
+ },
+ "bucket-stock": {
+  "widths": [
+   720
+  ],
+  "width": 640,
+  "height": 480
+ },
+ "zoo-compost": {
+  "widths": [
+   720,
+   1400
+  ],
+  "width": 960,
+  "height": 638
+ },
+ "handigaun-compost": {
+  "widths": [
+   720,
+   1400
+  ],
+  "width": 960,
+  "height": 638
+ },
+ "compost-shed": {
+  "widths": [
+   720,
+   1400
+  ],
+  "width": 960,
+  "height": 638
+ },
+ "nursery": {
+  "widths": [
+   720,
+   1400
+  ],
+  "width": 960,
+  "height": 638
+ },
+ "organic-farm": {
+  "widths": [
+   720,
+   1400
+  ],
+  "width": 960,
+  "height": 720
+ },
+ "students-compost": {
+  "widths": [
+   720,
+   1400
+  ],
+  "width": 960,
+  "height": 720
+ },
+ "students-visit": {
+  "widths": [
+   720,
+   1400
+  ],
+  "width": 960,
+  "height": 720
+ },
+ "awareness-cart": {
+  "widths": [
+   720,
+   1400
+  ],
+  "width": 960,
+  "height": 640
+ },
+ "roadside-clearing": {
+  "widths": [
+   720,
+   1400
+  ],
+  "width": 960,
+  "height": 540
+ },
+ "chakrapath-2018-team": {
+  "widths": [
+   720,
+   1400
+  ],
+  "width": 960,
+  "height": 720
+ },
+ "roadside-clearing-machine": {
+  "widths": [
+   720,
+   1400
+  ],
+  "width": 960,
+  "height": 540
+ },
+ "german-embassy-visit": {
+  "widths": [
+   720,
+   1400
+  ],
+  "width": 1400,
+  "height": 1050
+ },
+ "training-certificates": {
+  "widths": [
+   720,
+   1400
+  ],
+  "width": 960,
+  "height": 720
+ },
+ "street-awareness": {
+  "widths": [
+   720
+  ],
+  "width": 640,
+  "height": 480
+ },
+ "publications": {
+  "widths": [
+   720
+  ],
+  "width": 400,
+  "height": 300
+ },
+ "vermi-box": {
+  "widths": [
+   720
+  ],
+  "width": 250,
+  "height": 188
+ }
+}

@@ -1,0 +1,385 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import Icon from '~/components/Icon.astro';
+import Photo from '~/components/Photo.astro';
+import PageHero from '~/components/PageHero.astro';
+import SectionHead from '~/components/SectionHead.astro';
+import YouTube from '~/components/YouTube.astro';
+import { sortingGuide } from '~/data/programmes';
+import { publications, research, compostMethods } from '~/data/resources';
+import { studies } from '~/data/partners';
+import { caption } from '~/data/photos';
+import { org, mailto } from '~/data/site';
+import { fill } from '~/i18n/ui';
+import { formatDigits, localizePath, tr, useTranslations, type Lang } from '~/i18n/utils';
+
+type Props = { lang: Lang };
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+---
+
+<BaseLayout title={t('resources.title')} description={t('resources.lead')}>
+  <PageHero eyebrow={t('nav.resources')} title={t('resources.title')} lead={t('resources.lead')} />
+
+  <!-- Sorting guide -->
+  <section class="section section-white" id="sorting">
+    <div class="container">
+      <SectionHead eyebrow={t('resources.sortEyebrow')} title={t('resources.sortTitle')} intro={t('home.sort.intro')} />
+      <div class="sort">
+        {
+          (['green', 'red'] as const).map((key) => (
+            <div class:list={['bucket', `bucket-${key}`]}>
+              <span class="bucket-icon" aria-hidden="true">
+                <Icon name="trash" size={34} />
+              </span>
+              <h3>{tr(sortingGuide[key].label, lang)}</h3>
+              <ul class="check-list">
+                {sortingGuide[key].items.map((item) => (
+                  <li>
+                    <Icon name="check" size={16} />
+                    <span>{tr(item, lang)}</span>
+                  </li>
+                ))}
+              </ul>
+              <p class="bucket-note">{tr(sortingGuide[key].note, lang)}</p>
+            </div>
+          ))
+        }
+        <div class="photo sort-photo">
+          <Photo slug="segregation-pair" alt={caption('segregation-pair', lang)} sizes="(min-width: 1000px) 360px, 100vw" />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Composting -->
+  <section class="section" id="composting">
+    <div class="container">
+      <SectionHead eyebrow={t('resources.compostEyebrow')} title={t('resources.compostTitle')} intro={t('resources.compostIntro')} />
+      <ol class="grid grid-3 methods">
+        {
+          compostMethods.map((m, i) => (
+            <li class="card card-pad method">
+              <span class="step">{formatDigits(i + 1, lang)}</span>
+              <span class="icon-badge">
+                <Icon name={m.icon} size={24} />
+              </span>
+              <h3>{tr(m.title, lang)}</h3>
+              <p>{tr(m.text, lang)}</p>
+            </li>
+          ))
+        }
+      </ol>
+    </div>
+  </section>
+
+  <!-- Publications -->
+  <section class="section section-white" id="publications">
+    <div class="container">
+      <SectionHead eyebrow={t('resources.pubsEyebrow')} title={t('resources.pubsTitle')} intro={t('resources.pubsIntro')} />
+      <div class="pubs-grid">
+        <ul class="pubs">
+          {
+            publications.map((p) => (
+              <li class="pub">
+                <span class="icon-badge icon-badge-blue">
+                  <Icon name={p.icon} size={22} />
+                </span>
+                <div>
+                  <h3>{tr(p.title, lang)}</h3>
+                  <p>{tr(p.text, lang)}</p>
+                </div>
+                {p.file ? (
+                  <a class="btn btn-outline btn-sm" href={p.file} download>
+                    <Icon name="download" size={16} /> {t('cta.download')}
+                  </a>
+                ) : (
+                  <a class="btn btn-outline btn-sm" href={mailto(fill(t('contact.subject.copy'), { title: tr(p.title, lang) }))}>
+                    <Icon name="mail" size={16} /> {t('cta.askCopy')}
+                  </a>
+                )}
+              </li>
+            ))
+          }
+        </ul>
+        <div class="pubs-side">
+          <div class="photo"><Photo slug="publications" alt={caption('publications', lang)} sizes="360px" /></div>
+          <div class="photo"><Photo slug="vermi-box" alt={caption('vermi-box', lang)} sizes="360px" /></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Research -->
+  <section class="section" id="research">
+    <div class="container research-grid">
+      <div>
+        <SectionHead eyebrow={t('resources.researchEyebrow')} title={t('resources.researchTitle')} />
+        <ul class="research">
+          {
+            research.map((r) => (
+              <li>
+                <Icon name="flask-conical" size={18} />
+                <span>
+                  {tr(r.title, lang)}
+                  {r.year && <span class="muted"> ({formatDigits(r.year, lang)})</span>}
+                </span>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+      <div>
+        <SectionHead eyebrow={t('partners.studiesEyebrow')} title={t('resources.reportsTitle')} />
+        <ul class="reports">
+          {
+            studies.map((s) => (
+              <li>
+                <a href={s.href} target="_blank" rel="noopener">
+                  <span class="r-year">{formatDigits(s.year, lang)}</span>
+                  <span lang="en">{s.title}</span>
+                  <Icon name="arrow-up-right" size={16} />
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+        <p><a class="link-arrow" href={localizePath('/partners/#records', lang)}>{t('partners.studiesTitle')} <Icon name="arrow-right" size={16} /></a></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Video -->
+  <section class="section section-blue">
+    <div class="container video">
+      <SectionHead eyebrow={t('home.video.eyebrow')} title={t('home.video.title')} intro={t('home.video.text')} align="center" />
+      <YouTube id={org.documentaryId} title="NEPCEMAC documentary" playLabel={t('home.video.play')} />
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .sort {
+    display: grid;
+    grid-template-columns: 1fr 1fr 0.9fr;
+    gap: 1.25rem;
+    align-items: stretch;
+  }
+
+  .bucket {
+    display: grid;
+    gap: 0.9rem;
+    align-content: start;
+    padding: 1.5rem;
+    border-radius: var(--radius);
+    border: 1px solid;
+  }
+
+  .bucket-icon {
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
+    color: #fff;
+  }
+
+  .bucket h3 {
+    font-size: 1.15rem;
+  }
+
+  .bucket-green {
+    background: var(--green-50);
+    border-color: var(--green-100);
+  }
+
+  .bucket-green .bucket-icon {
+    background: var(--green-500);
+  }
+
+  .bucket-red {
+    background: var(--bucket-red-50);
+    border-color: #f4d6d1;
+  }
+
+  .bucket-red .bucket-icon {
+    background: var(--bucket-red);
+  }
+
+  .bucket-red :global(.check-list .icon) {
+    color: var(--bucket-red);
+  }
+
+  .bucket-note {
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  .sort-photo {
+    min-height: 280px;
+  }
+
+  .methods {
+    list-style: none;
+  }
+
+  .method {
+    position: relative;
+    display: grid;
+    gap: 0.75rem;
+    align-content: start;
+  }
+
+  .method p {
+    color: var(--muted);
+  }
+
+  .step {
+    position: absolute;
+    top: 1rem;
+    right: 1.25rem;
+    font-family: var(--font-head);
+    font-size: 2.6rem;
+    font-weight: 700;
+    color: var(--green-100);
+    line-height: 1;
+  }
+
+  .pubs-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: 2rem;
+    align-items: start;
+  }
+
+  .pubs {
+    list-style: none;
+    display: grid;
+  }
+
+  .pub {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 1rem;
+    align-items: center;
+    padding-block: 1.1rem;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .pub:first-child {
+    padding-top: 0;
+  }
+
+  .pub h3 {
+    font-size: 1.05rem;
+  }
+
+  .pub p {
+    color: var(--muted);
+    font-size: var(--step--1);
+  }
+
+  .pubs-side {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .pubs-side .photo {
+    aspect-ratio: 4 / 3;
+  }
+
+  .research-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: start;
+  }
+
+  .research-grid :global(.section-head) {
+    margin-bottom: 1.5rem;
+  }
+
+  .research,
+  .reports {
+    list-style: none;
+    display: grid;
+    gap: 0.6rem;
+  }
+
+  .research li {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.75rem;
+    padding: 0.9rem 1rem;
+    border-radius: var(--radius-sm);
+    background: #fff;
+    border: 1px solid var(--line);
+  }
+
+  .research :global(.icon) {
+    margin-top: 0.25em;
+    color: var(--blue);
+  }
+
+  .reports a {
+    display: grid;
+    grid-template-columns: 3.2rem 1fr auto;
+    gap: 0.75rem;
+    align-items: start;
+    padding: 0.8rem 1rem;
+    border-radius: var(--radius-sm);
+    background: #fff;
+    border: 1px solid var(--line);
+    color: var(--ink);
+    text-decoration: none;
+  }
+
+  .reports a:hover {
+    border-color: var(--blue);
+  }
+
+  .r-year {
+    font-family: var(--font-head);
+    font-weight: 700;
+    color: var(--blue-700);
+  }
+
+  .reports + p {
+    margin-top: 1.25rem;
+  }
+
+  .video {
+    max-width: 900px;
+  }
+
+  @media (max-width: 1000px) {
+    .sort {
+      grid-template-columns: 1fr 1fr;
+    }
+    .sort-photo {
+      grid-column: 1 / -1;
+      aspect-ratio: 16 / 9;
+      min-height: 0;
+    }
+    .pubs-grid,
+    .research-grid {
+      grid-template-columns: 1fr;
+    }
+    .pubs-side {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .sort {
+      grid-template-columns: 1fr;
+    }
+    .pub {
+      grid-template-columns: auto 1fr;
+    }
+    .pub .btn {
+      grid-column: 2;
+      justify-self: start;
+    }
+  }
+</style>

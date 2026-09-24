@@ -1,0 +1,35 @@
+---
+import photoSizes from '~/data/photo-sizes.json';
+
+type Props = {
+  slug: string;
+  alt: string;
+  /** Rendered width hint for the browser, e.g. "(min-width: 900px) 50vw, 100vw". */
+  sizes?: string;
+  class?: string;
+  loading?: 'lazy' | 'eager';
+  priority?: boolean;
+};
+
+type Info = { widths: number[]; width: number; height: number };
+const { slug, alt, sizes = '(min-width: 1200px) 600px, 100vw', class: className, loading = 'lazy', priority = false } = Astro.props;
+const info = (photoSizes as Record<string, Info>)[slug];
+if (!info) throw new Error(`Unknown photo "${slug}" — add it to src/data/photo-sizes.json`);
+
+// The small file is 720px wide unless the original was narrower; the large one is the full stored width.
+const small = Math.min(720, info.width);
+const srcset = info.widths.map((w, i) => `/images/photos/${slug}-${w}.webp ${i === info.widths.length - 1 ? info.width : small}w`).join(', ');
+---
+
+<img
+  src={`/images/photos/${slug}-720.webp`}
+  srcset={srcset}
+  sizes={sizes}
+  width={info.width}
+  height={info.height}
+  alt={alt}
+  class={className}
+  loading={priority ? 'eager' : loading}
+  decoding="async"
+  fetchpriority={priority ? 'high' : undefined}
+/>

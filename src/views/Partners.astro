@@ -1,0 +1,478 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import Icon from '~/components/Icon.astro';
+import PageHero from '~/components/PageHero.astro';
+import SectionHead from '~/components/SectionHead.astro';
+import { partnerGroups, communityPartners, studies, lalitpur2008, type Partner } from '~/data/partners';
+import { mailto } from '~/data/site';
+import { fill } from '~/i18n/ui';
+import { formatDigits, tr, useTranslations, type Lang } from '~/i18n/utils';
+
+type Props = { lang: Lang };
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+
+const count = (id: string) => partnerGroups.find((g) => g.id === id)?.partners.length ?? 0;
+const counts = [
+  { n: count('local-government'), label: t('partners.count.cities'), href: '#local-government' },
+  { n: count('government'), label: t('partners.count.gov'), href: '#government' },
+  { n: count('international'), label: t('partners.count.intl'), href: '#international' },
+  { n: studies.length, label: t('partners.count.studies'), href: '#records' },
+];
+
+const groupIcon: Record<string, 'landmark' | 'building' | 'globe' | 'flask-conical' | 'handshake'> = {
+  'local-government': 'building',
+  government: 'landmark',
+  international: 'globe',
+  national: 'flask-conical',
+  private: 'handshake',
+};
+const isFeature = (p: Partner) => p.id === 'aibi';
+---
+
+<BaseLayout title={t('partners.title')} description={t('partners.lead')}>
+  <PageHero eyebrow={t('nav.partners')} title={t('partners.title')} lead={t('partners.lead')}>
+    <ul class="counts">
+      {
+        counts.map((c) => (
+          <li>
+            <a href={c.href}>
+              <strong>{formatDigits(c.n, lang)}</strong>
+              <span>{c.label}</span>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </PageHero>
+
+  {
+    partnerGroups.map((group, gi) => (
+      <section class:list={['section', gi % 2 === 0 && 'section-white']} id={group.id}>
+        <div class="container">
+          <SectionHead title={tr(group.title, lang)} intro={tr(group.intro, lang)} />
+          <ul class="partners">
+            {group.partners.map((p) => (
+              <li class:list={['card', 'partner', isFeature(p) && 'is-feature']} id={p.id}>
+                <div class="p-head">
+                  {p.logo ? (
+                    <span class="logo">
+                      <img src={`/images/partners/${p.logo}.webp`} alt="" loading="lazy" decoding="async" />
+                    </span>
+                  ) : (
+                    <span class="icon-badge">
+                      <Icon name={groupIcon[group.id] ?? 'handshake'} size={24} />
+                    </span>
+                  )}
+                  <div>
+                    <h3>{tr(p.name, lang)}</h3>
+                    {p.period && (
+                      <p class="period">
+                        <Icon name="calendar" size={15} />
+                        {tr(p.period, lang)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                {isFeature(p) && <p class="eyebrow">{t('partners.projectLabel')}</p>}
+                <p class:list={['role', isFeature(p) && 'role-feature']}>{tr(p.role, lang)}</p>
+                {p.details && (
+                  <div class="details">
+                    {isFeature(p) && <h4>{t('partners.whatWeDid')}</h4>}
+                    <ul class="check-list">
+                      {p.details.map((d) => (
+                        <li>
+                          <Icon name="check" size={16} />
+                          <span>{tr(d, lang)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {p.href && (
+                  <a class="link-arrow ext" href={p.href} target="_blank" rel="noopener">
+                    {p.href.replace(/^https?:\/\/(www\.)?/, '')} <Icon name="arrow-up-right" size={16} />
+                  </a>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+    ))
+  }
+
+  <section class="section section-tint">
+    <div class="container">
+      <SectionHead title={t('partners.communityTitle')} intro={t('partners.communityIntro')} />
+      <ul class="community">
+        {
+          communityPartners.map((c) => (
+            <li>
+              <Icon name="users" size={18} />
+              {tr(c, lang)}
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+
+  <section class="section section-white" id="records">
+    <div class="container">
+      <SectionHead eyebrow={t('partners.studiesEyebrow')} title={t('partners.studiesTitle')} intro={t('partners.studiesIntro')} />
+      <ol class="studies">
+        {
+          studies.map((s) => (
+            <li class="study" id={s.id}>
+              <span class="s-year">{formatDigits(s.year, lang)}</span>
+              <div class="s-body">
+                <h3 lang="en">{s.title}</h3>
+                <p class="publisher">
+                  {tr(s.publisher, lang)}
+                  {s.pages && <> · {fill(t('common.pages'), { p: formatDigits(s.pages, lang) })}</>}
+                </p>
+                <p>{tr(s.finding, lang)}</p>
+                <a class="link-arrow" href={s.href} target="_blank" rel="noopener">
+                  {t('cta.openDocument')} ({t('common.pdf')}) <Icon name="arrow-up-right" size={16} />
+                  <span class="visually-hidden">{t('common.opensNewTab')}</span>
+                </a>
+              </div>
+            </li>
+          ))
+        }
+      </ol>
+
+      <div class="figures card">
+        <h3>{t('partners.figuresTitle')}</h3>
+        <ul>
+          {
+            lalitpur2008.map((f) => (
+              <li>
+                <strong>{formatDigits(f.value, lang)}</strong>
+                <span>{tr(f.label, lang)}</span>
+              </li>
+            ))
+          }
+        </ul>
+        <p class="small muted">{t('partners.figuresSource')}</p>
+      </div>
+
+      <p class="suggest">
+        <Icon name="info" size={18} />
+        <span>
+          {t('partners.suggest')}{' '}
+          <a href={mailto(t('contact.subject.record'))}>{t('cta.email')}</a>
+        </span>
+      </p>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .counts {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+    max-width: 720px;
+  }
+
+  .counts a {
+    display: grid;
+    gap: 0.1rem;
+    padding: 0.85rem 1rem;
+    border-radius: var(--radius-sm);
+    background: #fff;
+    border: 1px solid var(--line);
+    color: inherit;
+    text-decoration: none;
+    height: 100%;
+  }
+
+  .counts a:hover {
+    border-color: var(--green);
+  }
+
+  .counts strong {
+    font-family: var(--font-head);
+    font-size: var(--step-2);
+    color: var(--green);
+    line-height: 1.1;
+  }
+
+  .counts span {
+    color: var(--muted);
+    font-size: var(--step--1);
+    line-height: 1.35;
+  }
+
+  .partners {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+    gap: 1.25rem;
+  }
+
+  .partner {
+    display: grid;
+    gap: 0.9rem;
+    align-content: start;
+    padding: clamp(1.25rem, 3vw, 1.6rem);
+    scroll-margin-top: calc(var(--header-h) + 1rem);
+  }
+
+  .partner:target {
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px var(--green-100);
+  }
+
+  .p-head {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .p-head h3 {
+    font-size: 1.1rem;
+  }
+
+  .logo {
+    display: grid;
+    place-items: center;
+    width: 72px;
+    height: 60px;
+    padding: 0.35rem;
+    border-radius: 12px;
+    background: #fff;
+    border: 1px solid var(--line);
+  }
+
+  .logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .period {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.25rem;
+    color: var(--green-600);
+    font-weight: 600;
+    font-size: 0.92rem;
+  }
+
+  .role {
+    color: var(--text);
+  }
+
+  .details h4 {
+    margin-bottom: 0.6rem;
+    font-size: 1rem;
+  }
+
+  .details .check-list {
+    font-size: var(--step--1);
+    color: var(--muted);
+  }
+
+  .ext {
+    font-size: 0.9rem;
+  }
+
+  .is-feature {
+    grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: clamp(1.5rem, 4vw, 3rem);
+    background:
+      radial-gradient(500px 240px at 100% 0%, var(--blue-50), transparent 70%),
+      var(--surface);
+    border-color: var(--blue-100);
+  }
+
+  .is-feature > :not(.details) {
+    grid-column: 1;
+  }
+
+  .is-feature .details {
+    grid-column: 2;
+    grid-row: 1 / span 5;
+    align-self: start;
+    padding: 1.25rem;
+    border-radius: var(--radius-sm);
+    background: #fff;
+    border: 1px solid var(--line);
+  }
+
+  .is-feature .logo {
+    width: 120px;
+    height: 72px;
+  }
+
+  .is-feature .p-head h3 {
+    font-size: var(--step-1);
+  }
+
+  .role-feature {
+    font-family: var(--font-head);
+    font-size: 1.12rem;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.45;
+  }
+
+  :lang(ne) .role-feature {
+    font-family: var(--font-sans);
+    line-height: 1.7;
+  }
+
+  .community {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+
+  .community li {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 1rem;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid var(--line);
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  .community :global(.icon) {
+    color: var(--green-600);
+  }
+
+  .studies {
+    list-style: none;
+    display: grid;
+    gap: 1rem;
+    max-width: 940px;
+  }
+
+  .study {
+    display: grid;
+    grid-template-columns: 5rem 1fr;
+    gap: 1.25rem;
+    padding: 1.35rem 1.5rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    background: var(--paper);
+    scroll-margin-top: calc(var(--header-h) + 1rem);
+  }
+
+  .s-year {
+    font-family: var(--font-head);
+    font-size: var(--step-2);
+    font-weight: 700;
+    color: var(--blue-700);
+    line-height: 1.1;
+  }
+
+  .s-body {
+    display: grid;
+    gap: 0.45rem;
+  }
+
+  .s-body h3 {
+    font-size: 1.1rem;
+    font-style: italic;
+  }
+
+  .publisher {
+    color: var(--green-600);
+    font-weight: 600;
+    font-size: var(--step--1);
+  }
+
+  .figures {
+    display: grid;
+    gap: 1rem;
+    max-width: 940px;
+    margin-top: 2rem;
+    padding: clamp(1.25rem, 3vw, 1.75rem);
+    background: var(--green-900);
+    border: 0;
+    color: #d6e4d0;
+  }
+
+  .figures h3 {
+    color: #fff;
+  }
+
+  .figures ul {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+  }
+
+  .figures li {
+    display: grid;
+    gap: 0.2rem;
+  }
+
+  .figures strong {
+    font-family: var(--font-head);
+    font-size: var(--step-2);
+    color: #fff;
+    line-height: 1.1;
+  }
+
+  .figures span {
+    font-size: var(--step--1);
+    line-height: 1.4;
+  }
+
+  .figures .muted {
+    color: #a9bda2;
+  }
+
+  .suggest {
+    display: flex;
+    gap: 0.6rem;
+    align-items: start;
+    max-width: 940px;
+    margin-top: 1.5rem;
+    color: var(--muted);
+  }
+
+  .suggest :global(.icon) {
+    flex: none;
+    margin-top: 0.25em;
+    color: var(--blue);
+  }
+
+  @media (max-width: 900px) {
+    .is-feature {
+      grid-template-columns: 1fr;
+    }
+    .is-feature .details {
+      grid-column: 1;
+      grid-row: auto;
+    }
+    .figures ul {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .counts {
+      grid-template-columns: 1fr 1fr;
+    }
+    .study {
+      grid-template-columns: 1fr;
+      gap: 0.5rem;
+    }
+  }
+</style>

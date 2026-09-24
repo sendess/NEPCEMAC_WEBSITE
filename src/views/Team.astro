@@ -1,0 +1,262 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import Icon from '~/components/Icon.astro';
+import PageHero from '~/components/PageHero.astro';
+import PersonCard from '~/components/PersonCard.astro';
+import SectionHead from '~/components/SectionHead.astro';
+import { board, advisors, messages } from '~/data/team';
+import { localizePath, tr, useTranslations, type Lang } from '~/i18n/utils';
+
+type Props = { lang: Lang };
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const advisorsWithPhoto = advisors.filter((p) => p.photo);
+const advisorsOthers = advisors.filter((p) => !p.photo);
+---
+
+<BaseLayout title={t('team.title')} description={t('team.lead')}>
+  <PageHero eyebrow={t('nav.team')} title={t('team.title')} lead={t('team.lead')} />
+
+  <section class="section section-white" id="messages">
+    <div class="container">
+      <SectionHead eyebrow={t('team.messagesEyebrow')} title={t('team.messagesTitle')} />
+      <div class="messages">
+        {
+          messages.map((m) => (
+            <article class="message card" id={m.id}>
+              <img src={`/images/team/${m.photo}-640.webp`} width="640" height="640" alt={tr(m.person, lang)} loading="lazy" decoding="async" />
+              <div class="m-body">
+                <Icon name="quote" size={30} />
+                <p class="excerpt">{tr(m.excerpt, lang)}</p>
+                <details>
+                  <summary>{t('cta.readFull')}</summary>
+                  <div class="prose">
+                    {m.body.map((p) => (
+                      <p>{tr(p, lang)}</p>
+                    ))}
+                  </div>
+                </details>
+                <p class="sign">
+                  <strong>{tr(m.person, lang)}</strong>
+                  <span>{tr(m.role, lang)}</span>
+                </p>
+              </div>
+            </article>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="board">
+    <div class="container">
+      <SectionHead eyebrow={t('team.boardEyebrow')} title={t('team.boardTitle')} />
+      <ul class="people">
+        {
+          board.map((p, i) => (
+            <li>
+              <PersonCard person={p} lang={lang} highlight={i < 2} />
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+
+  <section class="section section-white" id="advisors">
+    <div class="container">
+      <SectionHead eyebrow={t('team.advisorsEyebrow')} title={t('team.advisorsTitle')} />
+      <ul class="people">
+        {
+          advisorsWithPhoto.map((p) => (
+            <li>
+              <PersonCard person={p} lang={lang} />
+            </li>
+          ))
+        }
+      </ul>
+      <ul class="compact">
+        {
+          advisorsOthers.map((p) => (
+            <li>
+              <span class="avatar" aria-hidden="true">
+                <Icon name="users" size={20} />
+              </span>
+              <span>
+                <strong>{tr(p.name, lang)}</strong>
+                <span class="c-role">
+                  {tr(p.role, lang)}
+                  {p.note && <> · {tr(p.note, lang)}</>}
+                </span>
+              </span>
+            </li>
+          ))
+        }
+      </ul>
+      <p class="structure-link">
+        <a class="link-arrow" href={localizePath('/about/#structure', lang)}>{t('about.structureTitle')} <Icon name="arrow-right" size={16} /></a>
+      </p>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .messages {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+
+  .message {
+    display: grid;
+    grid-template-columns: 38% 1fr;
+    overflow: hidden;
+    scroll-margin-top: calc(var(--header-h) + 1rem);
+  }
+
+  .message img {
+    width: 100%;
+    height: 100%;
+    min-height: 320px;
+    object-fit: cover;
+    object-position: top;
+  }
+
+  .m-body {
+    display: grid;
+    gap: 1rem;
+    align-content: start;
+    padding: clamp(1.25rem, 3vw, 1.75rem);
+  }
+
+  .m-body > :global(.icon) {
+    color: var(--green-300);
+  }
+
+  .excerpt {
+    font-family: var(--font-head);
+    font-size: var(--step-1);
+    font-weight: 600;
+    line-height: 1.45;
+    color: var(--ink);
+  }
+
+  :lang(ne) .excerpt {
+    font-family: var(--font-sans);
+    line-height: 1.7;
+  }
+
+  details {
+    border-top: 1px solid var(--line);
+    padding-top: 0.75rem;
+  }
+
+  summary {
+    cursor: pointer;
+    color: var(--green);
+    font-weight: 600;
+  }
+
+  details[open] summary {
+    margin-bottom: 0.75rem;
+  }
+
+  details .prose {
+    color: var(--muted);
+    font-size: var(--step--1);
+  }
+
+  .sign {
+    display: grid;
+    gap: 0.1rem;
+    margin-top: auto;
+  }
+
+  .sign strong {
+    color: var(--ink);
+  }
+
+  .sign span {
+    color: var(--green-600);
+    font-size: var(--step--1);
+  }
+
+  .people {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
+  .compact {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+    gap: 0.75rem;
+    margin-top: 1rem;
+  }
+
+  .compact li {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.85rem;
+    align-items: center;
+    padding: 0.85rem 1rem;
+    border-radius: var(--radius-sm);
+    background: var(--paper);
+    border: 1px solid var(--line);
+  }
+
+  .avatar {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--green-100), var(--blue-100));
+    color: var(--green);
+  }
+
+  .compact strong {
+    display: block;
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  .c-role {
+    color: var(--green-600);
+    font-size: 0.92rem;
+  }
+
+  .structure-link {
+    margin-top: 2rem;
+  }
+
+  @media (max-width: 1000px) {
+    .messages {
+      grid-template-columns: 1fr;
+    }
+    .people {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 760px) {
+    .people {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 560px) {
+    .people {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .message {
+      grid-template-columns: 1fr;
+    }
+    .message img {
+      min-height: 0;
+      aspect-ratio: 4 / 3;
+    }
+  }
+</style>

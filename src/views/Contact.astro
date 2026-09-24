@@ -1,0 +1,231 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import Icon from '~/components/Icon.astro';
+import OfficeMap from '~/components/OfficeMap.astro';
+import PageHero from '~/components/PageHero.astro';
+import SectionHead from '~/components/SectionHead.astro';
+import { org, directionsUrl, mailto } from '~/data/site';
+import { formatDigits, telHref, tr, useTranslations, type Lang } from '~/i18n/utils';
+
+type Props = { lang: Lang };
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+
+const ways = [
+  { icon: 'brush-cleaning', title: t('contact.volunteer'), text: t('contact.volunteerText'), subject: t('contact.subject.volunteer') },
+  { icon: 'school', title: t('contact.invite'), text: t('contact.inviteText'), subject: t('contact.subject.invite') },
+  { icon: 'handshake', title: t('contact.partner'), text: t('contact.partnerText'), subject: t('contact.subject.partner') },
+  { icon: 'flask-conical', title: t('contact.research'), text: t('contact.researchText'), subject: t('contact.subject.research') },
+] as const;
+---
+
+<BaseLayout title={t('contact.title')} description={t('contact.lead')}>
+  <PageHero eyebrow={t('nav.contact')} title={t('contact.title')} lead={t('contact.lead')} />
+
+  <section class="section section-white">
+    <div class="container contact-grid">
+      <div class="details">
+        <ul class="info">
+          <li>
+            <span class="icon-badge"><Icon name="map-pin" size={22} /></span>
+            <div>
+              <h2>{t('common.address')}</h2>
+              <p>{tr(org.address, lang)}</p>
+              <a class="link-arrow" href={directionsUrl(org.location)} target="_blank" rel="noopener">
+                {t('cta.directions')} <Icon name="arrow-up-right" size={16} />
+              </a>
+            </div>
+          </li>
+          <li>
+            <span class="icon-badge"><Icon name="phone" size={22} /></span>
+            <div>
+              <h2>{t('common.phone')}</h2>
+              <p class="phones">
+                {org.phones.map((p) => (
+                  <a href={telHref(p)}>{formatDigits(p, lang)}</a>
+                ))}
+              </p>
+            </div>
+          </li>
+          <li>
+            <span class="icon-badge"><Icon name="mail" size={22} /></span>
+            <div>
+              <h2>{t('common.email')}</h2>
+              <p><a href={`mailto:${org.email}`}>{org.email}</a></p>
+            </div>
+          </li>
+          <li>
+            <span class="icon-badge"><Icon name="clock" size={22} /></span>
+            <div>
+              <h2>{t('common.hours')}</h2>
+              <p>{tr(org.hours, lang)}</p>
+            </div>
+          </li>
+          <li>
+            <span class="icon-badge icon-badge-blue"><Icon name="facebook" size={22} /></span>
+            <div>
+              <h2>{t('common.facebook')}</h2>
+              <p><a href={org.facebook} target="_blank" rel="noopener">{org.facebook.replace('https://www.', '')}</a></p>
+            </div>
+          </li>
+        </ul>
+
+        <p class="collection">
+          <Icon name="truck" size={20} />
+          <span>
+            {t('contact.collection')}{' '}
+            <a href={lang === 'ne' ? 'https://nepsemyak.com.np/ne/contact/' : 'https://nepsemyak.com.np/contact/'}>{t('contact.collectionLink')}</a>
+          </span>
+        </p>
+      </div>
+
+      <div class="map-wrap">
+        <h2 class="visually-hidden">{t('contact.mapTitle')}</h2>
+        <OfficeMap lat={org.location.lat} lng={org.location.lng} label={`${tr(org.name, lang)} — ${tr(org.address, lang)}`} ariaLabel={t('contact.mapLabel')} />
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="get-involved">
+    <div class="container">
+      <SectionHead eyebrow={t('contact.involvedEyebrow')} title={t('contact.involvedTitle')} />
+      <ul class="grid grid-4 ways">
+        {
+          ways.map((w) => (
+            <li class="card card-pad way">
+              <span class="icon-badge">
+                <Icon name={w.icon} size={24} />
+              </span>
+              <h3>{w.title}</h3>
+              <p>{w.text}</p>
+              <a class="btn btn-outline btn-sm" href={mailto(w.subject)}>
+                <Icon name="mail" size={16} /> {t('cta.email')}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .contact-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    gap: clamp(2rem, 5vw, 3.5rem);
+    align-items: stretch;
+  }
+
+  .details {
+    display: grid;
+    gap: 1.5rem;
+    align-content: start;
+  }
+
+  .info {
+    list-style: none;
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  .info li {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1rem;
+    align-items: start;
+  }
+
+  .info h2 {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-bottom: 0.2rem;
+  }
+
+  :lang(ne) .info h2 {
+    font-size: 0.95rem;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  .info p {
+    color: var(--ink);
+    font-size: var(--step-1);
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  .info .link-arrow {
+    margin-top: 0.35rem;
+  }
+
+  .phones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1.25rem;
+  }
+
+  .info a {
+    text-decoration: none;
+  }
+
+  .info p a {
+    color: var(--ink);
+  }
+
+  .info p a:hover {
+    color: var(--green);
+    text-decoration: underline;
+  }
+
+  .collection {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.75rem;
+    padding: 1rem 1.2rem;
+    border-radius: var(--radius-sm);
+    background: var(--blue-50);
+    border: 1px solid var(--blue-100);
+    color: var(--text);
+  }
+
+  .collection :global(.icon) {
+    margin-top: 0.2em;
+    color: var(--blue-700);
+  }
+
+  .map-wrap {
+    min-height: 420px;
+    display: grid;
+  }
+
+  .ways {
+    list-style: none;
+  }
+
+  .way {
+    display: grid;
+    gap: 0.75rem;
+    align-content: start;
+    grid-template-rows: auto auto 1fr auto;
+  }
+
+  .way p {
+    color: var(--muted);
+  }
+
+  .way .btn {
+    justify-self: start;
+  }
+
+  @media (max-width: 900px) {
+    .contact-grid {
+      grid-template-columns: 1fr;
+    }
+    .map-wrap {
+      min-height: 340px;
+    }
+  }
+</style>

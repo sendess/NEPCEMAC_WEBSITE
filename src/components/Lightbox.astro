@@ -1,0 +1,161 @@
+---
+// One shared photo viewer. Any link with data-lightbox="group" opens here; links in the same group page through.
+import Icon from './Icon.astro';
+import { useTranslations, type Lang } from '~/i18n/utils';
+
+type Props = { lang: Lang };
+const t = useTranslations(Astro.props.lang);
+---
+
+<dialog class="lightbox" data-lightbox-dialog data-label-of={t('common.photoOf')} aria-label={t('common.photos')}>
+  <figure>
+    <img alt="" data-lightbox-img />
+    <figcaption data-lightbox-caption></figcaption>
+  </figure>
+  <p class="count" data-lightbox-count aria-live="polite"></p>
+  <button class="close" type="button" data-lightbox-close aria-label={t('common.close')}><Icon name="x" size={24} /></button>
+  <button class="nav prev" type="button" data-lightbox-prev aria-label={t('common.previous')}><Icon name="chevron-left" size={28} /></button>
+  <button class="nav next" type="button" data-lightbox-next aria-label={t('common.next')}><Icon name="chevron-right" size={28} /></button>
+</dialog>
+
+<script>
+  const dialog = document.querySelector<HTMLDialogElement>('[data-lightbox-dialog]');
+  if (dialog) {
+    const img = dialog.querySelector<HTMLImageElement>('[data-lightbox-img]')!;
+    const caption = dialog.querySelector<HTMLElement>('[data-lightbox-caption]')!;
+    const count = dialog.querySelector<HTMLElement>('[data-lightbox-count]')!;
+    const prev = dialog.querySelector<HTMLButtonElement>('[data-lightbox-prev]')!;
+    const next = dialog.querySelector<HTMLButtonElement>('[data-lightbox-next]')!;
+    const labelOf = dialog.dataset.labelOf ?? '{n} / {total}';
+    let items: HTMLAnchorElement[] = [];
+    let index = 0;
+    let opener: HTMLElement | null = null;
+
+    const show = (i: number) => {
+      index = (i + items.length) % items.length;
+      const link = items[index];
+      const thumb = link.querySelector('img');
+      img.src = link.href;
+      img.alt = thumb?.alt ?? '';
+      caption.textContent = link.dataset.caption ?? thumb?.alt ?? '';
+      count.textContent = items.length > 1 ? labelOf.replace('{n}', String(index + 1)).replace('{total}', String(items.length)) : '';
+      prev.hidden = next.hidden = items.length < 2;
+    };
+
+    const close = () => {
+      dialog.close();
+      img.removeAttribute('src');
+      opener?.focus();
+    };
+
+    document.addEventListener('click', (e) => {
+      const link = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[data-lightbox]');
+      if (!link || e.metaKey || e.ctrlKey || e.shiftKey) return;
+      e.preventDefault();
+      opener = link;
+      items = [...document.querySelectorAll<HTMLAnchorElement>(`a[data-lightbox="${link.dataset.lightbox}"]`)];
+      show(items.indexOf(link));
+      dialog.showModal();
+    });
+
+    prev.addEventListener('click', () => show(index - 1));
+    next.addEventListener('click', () => show(index + 1));
+    dialog.querySelector('[data-lightbox-close]')!.addEventListener('click', close);
+    dialog.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft' && items.length > 1) show(index - 1);
+      if (e.key === 'ArrowRight' && items.length > 1) show(index + 1);
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        close();
+      }
+    });
+    // Clicking the dark area around the photo closes the viewer.
+    dialog.addEventListener('click', (e) => e.target === dialog && close());
+  }
+</script>
+
+<style>
+  .lightbox {
+    width: 100vw;
+    height: 100dvh;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: clamp(3.5rem, 6vw, 4.5rem) clamp(0.75rem, 6vw, 5rem) 2.5rem;
+    border: 0;
+    background: rgb(8 18 6 / 0.94);
+    color: #fff;
+  }
+
+  .lightbox[open] {
+    display: grid;
+    place-items: center;
+  }
+
+  .lightbox::backdrop {
+    background: transparent;
+  }
+
+  figure {
+    margin: 0;
+    display: grid;
+    gap: 0.75rem;
+    justify-items: center;
+    max-height: 100%;
+  }
+
+  img {
+    max-width: 100%;
+    max-height: calc(100dvh - 10rem);
+    width: auto;
+    border-radius: 8px;
+  }
+
+  figcaption {
+    max-width: 70ch;
+    text-align: center;
+    color: #dfe7db;
+  }
+
+  .count {
+    position: absolute;
+    top: 1.25rem;
+    left: 1.25rem;
+    color: #b8c6b3;
+    font-size: 0.9rem;
+  }
+
+  button {
+    position: absolute;
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 1px solid rgb(255 255 255 / 0.25);
+    background: rgb(255 255 255 / 0.06);
+    color: #fff;
+  }
+
+  button:hover {
+    background: rgb(255 255 255 / 0.16);
+  }
+
+  .close {
+    top: 1rem;
+    right: 1rem;
+  }
+
+  .nav {
+    top: 50%;
+    translate: 0 -50%;
+  }
+
+  .prev {
+    left: clamp(0.5rem, 2vw, 1.5rem);
+  }
+
+  .next {
+    right: clamp(0.5rem, 2vw, 1.5rem);
+  }
+</style>

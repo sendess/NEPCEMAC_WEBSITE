@@ -1,0 +1,85 @@
+---
+// Photo thumbnails that open in the shared Lightbox.
+import Photo from './Photo.astro';
+import Icon from './Icon.astro';
+import photoSizes from '~/data/photo-sizes.json';
+
+type Props = { group: string; photos: { slug: string; alt: string }[]; enlargeLabel: string };
+const { group, photos, enlargeLabel } = Astro.props;
+const largest = (slug: string) => {
+  const info = (photoSizes as Record<string, { widths: number[] }>)[slug];
+  return `/images/photos/${slug}-${info.widths.at(-1)}.webp`;
+};
+---
+
+<ul class:list={['gallery', `n-${Math.min(photos.length, 4)}`]}>
+  {
+    photos.map((p) => (
+      <li>
+        <a href={largest(p.slug)} data-lightbox={group} data-caption={p.alt} aria-label={`${enlargeLabel}: ${p.alt}`}>
+          <Photo slug={p.slug} alt={p.alt} sizes="(min-width: 900px) 360px, 50vw" />
+          <span class="zoom" aria-hidden="true">
+            <Icon name="camera" size={16} />
+          </span>
+        </a>
+      </li>
+    ))
+  }
+</ul>
+
+<style>
+  .gallery {
+    list-style: none;
+    display: grid;
+    gap: 0.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(min(46%, 180px), 1fr));
+  }
+
+  .gallery.n-1 {
+    grid-template-columns: 1fr;
+  }
+
+  a {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    aspect-ratio: 4 / 3;
+    border-radius: var(--radius-sm);
+    background: var(--green-100);
+  }
+
+  .n-1 a {
+    aspect-ratio: 16 / 9;
+  }
+
+  a :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: scale 0.5s var(--ease);
+  }
+
+  a:hover :global(img) {
+    scale: 1.04;
+  }
+
+  .zoom {
+    position: absolute;
+    right: 0.5rem;
+    bottom: 0.5rem;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: rgb(0 0 0 / 0.45);
+    color: #fff;
+    opacity: 0;
+    transition: opacity 0.2s var(--ease);
+  }
+
+  a:hover .zoom,
+  a:focus-visible .zoom {
+    opacity: 1;
+  }
+</style>

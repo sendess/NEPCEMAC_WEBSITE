@@ -1,0 +1,132 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Addresses from the earlier NEPCEMAC sites (2009 PHP site, 2018–2023 WordPress site, 2024 HTML site)
+# still turn up in search results and old links, so they lead to the matching new page.
+[[redirects]]
+  from = "/index.html"
+  to = "/"
+  status = 301
+[[redirects]]
+  from = "/about.html"
+  to = "/about/"
+  status = 301
+[[redirects]]
+  from = "/services.html"
+  to = "/programmes/"
+  status = 301
+[[redirects]]
+  from = "/services"
+  to = "/programmes/"
+  status = 301
+[[redirects]]
+  from = "/contact.html"
+  to = "/contact/"
+  status = 301
+[[redirects]]
+  from = "/profile.php"
+  to = "/about/"
+  status = 301
+[[redirects]]
+  from = "/activities.php"
+  to = "/programmes/"
+  status = 301
+[[redirects]]
+  from = "/aibi.php"
+  to = "/partners/#aibi"
+  status = 301
+[[redirects]]
+  from = "/bod.php"
+  to = "/team/"
+  status = 301
+[[redirects]]
+  from = "/orgnStru.php"
+  to = "/about/#structure"
+  status = 301
+[[redirects]]
+  from = "/publication.php"
+  to = "/resources/"
+  status = 301
+[[redirects]]
+  from = "/research.php"
+  to = "/resources/#research"
+  status = 301
+[[redirects]]
+  from = "/contact.php"
+  to = "/contact/"
+  status = 301
+[[redirects]]
+  from = "/about-us/*"
+  to = "/about/"
+  status = 301
+[[redirects]]
+  from = "/who-we-are/*"
+  to = "/about/"
+  status = 301
+[[redirects]]
+  from = "/board-of-directors/*"
+  to = "/team/"
+  status = 301
+[[redirects]]
+  from = "/advisory-board/*"
+  to = "/team/#advisors"
+  status = 301
+[[redirects]]
+  from = "/advisor/*"
+  to = "/team/#advisors"
+  status = 301
+[[redirects]]
+  from = "/our-program/*"
+  to = "/programmes/"
+  status = 301
+[[redirects]]
+  from = "/program/*"
+  to = "/programmes/"
+  status = 301
+[[redirects]]
+  from = "/our-activities/*"
+  to = "/activities/"
+  status = 301
+[[redirects]]
+  from = "/activity/*"
+  to = "/activities/"
+  status = 301
+[[redirects]]
+  from = "/notice/*"
+  to = "/activities/"
+  status = 301
+[[redirects]]
+  from = "/contact-us/*"
+  to = "/contact/"
+  status = 301
+[[redirects]]
+  from = "/donate-now/*"
+  to = "/contact/#get-involved"
+  status = 301
+[[redirects]]
+  from = "/join-us-now/*"
+  to = "/contact/#get-involved"
+  status = 301
+
+# Hashed build assets never change, so browsers can keep them for a year.
+[[headers]]
+  for = "/_astro/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/images/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    X-Frame-Options = "SAMEORIGIN"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
