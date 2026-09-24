@@ -74,7 +74,7 @@ const switchHref = localizePath(basePath.startsWith('/404') ? '/' : basePath, ot
         toggle.focus();
       }
     });
-    matchMedia('(min-width: 1041px)').addEventListener('change', (e) => e.matches && setOpen(false));
+    matchMedia('(min-width: 1121px)').addEventListener('change', (e) => e.matches && setOpen(false));
   }
   // A thin shadow once the page scrolls under the header.
   const onScroll = () => header?.toggleAttribute('data-scrolled', scrollY > 8);
@@ -128,14 +128,14 @@ const switchHref = localizePath(basePath.startsWith('/404') ? '/' : basePath, ot
   .nav ul {
     display: flex;
     align-items: center;
-    gap: 0.15rem;
+    gap: 0.1rem;
     list-style: none;
     margin-inline: auto;
   }
 
   .nav ul a {
     display: block;
-    padding: 0.5rem 0.7rem;
+    padding: 0.5rem 0.62rem;
     border-radius: 999px;
     color: var(--ink);
     font-family: var(--font-head);
@@ -201,7 +201,7 @@ const switchHref = localizePath(basePath.startsWith('/404') ? '/' : basePath, ot
     display: none;
   }
 
-  @media (max-width: 1040px) {
+  @media (max-width: 1120px) {
     .menu-toggle {
       display: grid;
     }

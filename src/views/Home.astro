@@ -143,7 +143,17 @@ const highlights = [
             ))
           }
         </div>
-        <p><a class="link-arrow" href={L('/resources/#sorting')}>{t('cta.guide')} <Icon name="arrow-right" size={16} /></a></p>
+        <form class="quick-find" action={L('/resources/')} method="get" role="search">
+          <label for="home-q">{t('finder.homeLabel')}</label>
+          <div class="qf-row">
+            <input id="home-q" name="q" type="search" autocomplete="off" required placeholder={t('finder.placeholder')} />
+            <button class="btn btn-primary" type="submit"><Icon name="search" size={18} /> {t('finder.find')}</button>
+          </div>
+          <p class="qf-links">
+            <a class="link-arrow" href={L('/resources/#finder')}>{t('cta.guide')} <Icon name="arrow-right" size={16} /></a>
+            <a class="link-arrow" href={L('/poster/')}><Icon name="printer" size={16} /> {t('finder.poster')}</a>
+          </p>
+        </form>
       </div>
       <div class="photo sort-photo">
         <Photo slug="bucket-stock" alt={caption('bucket-stock', lang)} sizes="(min-width: 1000px) 520px, 100vw" />
@@ -530,6 +540,60 @@ const highlights = [
     color: var(--ink);
   }
 
+  .quick-find {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.6rem;
+    padding: 1.1rem 1.25rem;
+    border-radius: var(--radius);
+    background: var(--green-900);
+  }
+
+  .quick-find label {
+    font-weight: 600;
+    color: #fff;
+  }
+
+  .qf-row {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .qf-row input {
+    flex: 1;
+    min-width: 0;
+    min-height: 48px;
+    padding: 0.6rem 0.9rem;
+    border: 2px solid transparent;
+    border-radius: 12px;
+    background: #fff;
+    color: var(--ink);
+  }
+
+  .qf-row input:focus {
+    outline: none;
+    border-color: var(--green-300);
+  }
+
+  .qf-row .btn {
+    background: var(--green-500);
+  }
+
+  .qf-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1.5rem;
+  }
+
+  .quick-find .link-arrow {
+    color: var(--green-200);
+    font-size: 0.92rem;
+  }
+
+  .quick-find .link-arrow:hover {
+    color: #fff;
+  }
+
   .sort-photo {
     aspect-ratio: 1;
     box-shadow: var(--shadow-lg);
@@ -742,7 +806,7 @@ const highlights = [
     .hero-grid,
     .sort-grid,
     .video-grid {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
     }
     .themes {
       grid-template-columns: 1fr 1fr;

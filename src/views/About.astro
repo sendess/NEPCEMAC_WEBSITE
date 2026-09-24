@@ -3,6 +3,7 @@ import BaseLayout from '~/layouts/BaseLayout.astro';
 import Icon from '~/components/Icon.astro';
 import Photo from '~/components/Photo.astro';
 import PageHero from '~/components/PageHero.astro';
+import PageNav from '~/components/PageNav.astro';
 import SectionHead from '~/components/SectionHead.astro';
 import { circle, legal } from '~/data/site';
 import { intro, vision, mission, goals, values, objectives, milestones, structure } from '~/data/about';
@@ -22,9 +23,21 @@ const legalRows = [
 
 <BaseLayout title={t('about.title')} description={tr(intro[1], lang)}>
   <PageHero eyebrow={t('nav.about')} title={t('about.title')} lead={t('about.lead')} photo="environment-day-2012" photoAlt={caption('environment-day-2012', lang)} />
+  <PageNav
+    label={t('pagenav.label')}
+    items={[
+      { id: 'story', label: t('about.nav.story') },
+      { id: 'vision', label: t('about.nav.vision') },
+      { id: 'values', label: t('about.valuesTitle') },
+      { id: 'timeline', label: t('about.timelineEyebrow') },
+      { id: 'objectives', label: t('about.objectivesEyebrow') },
+      { id: 'structure', label: t('about.legalEyebrow') },
+      { id: 'circle', label: t('about.circleTitle') },
+    ]}
+  />
 
   <!-- Background -->
-  <section class="section section-white">
+  <section class="section section-white" id="story">
     <div class="container intro-grid">
       <div class="prose intro-text">
         {intro.map((p, i) => <p class:list={[i === 0 && 'first']}>{tr(p, lang)}</p>)}
@@ -37,7 +50,7 @@ const legalRows = [
   </section>
 
   <!-- Vision, mission, goals -->
-  <section class="section section-tight">
+  <section class="section section-tight" id="vision">
     <div class="container vmg">
       <article class="card card-pad vm vision">
         <span class="icon-badge"><Icon name="globe" size={24} /></span>
@@ -62,7 +75,7 @@ const legalRows = [
   </section>
 
   <!-- Values -->
-  <section class="section section-white">
+  <section class="section section-white" id="values">
     <div class="container">
       <SectionHead eyebrow={t('about.valuesEyebrow')} title={t('about.valuesTitle')} />
       <ul class="values">
@@ -107,7 +120,7 @@ const legalRows = [
   </section>
 
   <!-- Objectives -->
-  <section class="section section-white">
+  <section class="section section-white" id="objectives">
     <div class="container">
       <SectionHead eyebrow={t('about.objectivesEyebrow')} title={t('about.objectivesTitle')} />
       <ol class="objectives">
@@ -172,7 +185,7 @@ const legalRows = [
   </section>
 
   <!-- Circle -->
-  <section class="section section-white">
+  <section class="section section-white" id="circle">
     <div class="container">
       <SectionHead eyebrow={t('about.circleEyebrow')} title={t('about.circleTitle')} intro={t('about.circleIntro')} />
       <ul class="grid grid-4 circle">

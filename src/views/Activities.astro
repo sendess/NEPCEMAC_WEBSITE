@@ -35,6 +35,19 @@ const undated = activities.filter((a) => !a.date);
 const year = (a: Activity) =>
   lang === 'ne' ? formatDigits(new NepaliDate(new Date(`${a.date}T12:00:00+05:45`)).getYear(), 'ne') : a.date!.slice(0, 4);
 const kindIcon = { campaign: 'brush-cleaning', visit: 'handshake', training: 'graduation-cap', notice: 'megaphone', compost: 'sprout' } as const;
+
+/** Dated entries grouped under a year heading. */
+const groups: { year: string; items: Activity[] }[] = [];
+for (const a of dated) {
+  const y = year(a);
+  if (groups.at(-1)?.year !== y) groups.push({ year: y, items: [] });
+  groups.at(-1)!.items.push(a);
+}
+
+/** Filter buttons: only the kinds that actually occur, with counts. */
+const kinds = (Object.keys(kindIcon) as Activity['kind'][])
+  .map((kind) => ({ kind, count: activities.filter((a) => a.kind === kind).length }))
+  .filter((k) => k.count > 0);
 ---
 
 <BaseLayout title={t('activities.title')} description={t('activities.lead')}>
@@ -48,64 +61,82 @@ const kindIcon = { campaign: 'brush-cleaning', visit: 'handshake', training: 'gr
   </PageHero>
 
   <section class="section section-white">
-    <div class="container">
-      <ol class="feed">
+    <div class="container" data-activities data-showing={t('activities.showing')} data-lang={lang}>
+      <div class="filters" role="group" aria-label={t('activities.filter')}>
+        <span class="f-label"><Icon name="list-filter" size={18} /> {t('activities.filter')}</span>
+        <button type="button" class="chip f-btn" data-filter="all" aria-pressed="true">
+          {t('activities.all')} <span class="n">{formatDigits(activities.length, lang)}</span>
+        </button>
         {
-          dated.map((a, i) => (
-            <li id={a.id}>
-              {(i === 0 || year(dated[i - 1]) !== year(a)) && (
-                <p class="year-mark" aria-hidden="true">
-                  {year(a)}
-                </p>
-              )}
-              <article class:list={['card', 'entry', a.photos.length === 0 && 'no-photos']}>
-                <div class="entry-text">
-                  <p class="meta">
-                    <span class="chip">
-                      <Icon name={kindIcon[a.kind]} size={15} />
-                      {t(`activities.kind.${a.kind}`)}
-                    </span>
-                    <time datetime={a.date}>
-                      <Icon name="calendar" size={15} />
-                      {when(a)}
-                    </time>
-                  </p>
-                  <h2>{tr(a.title, lang)}</h2>
-                  {a.text.map((p) => (
-                    <p>{tr(p, lang)}</p>
-                  ))}
-                  {a.facts && (
-                    <dl class="facts">
-                      {a.facts.map((f) => (
-                        <div>
-                          <dt>{tr(f.label, lang)}</dt>
-                          <dd>{tr(f.value, lang)}</dd>
-                        </div>
-                      ))}
-                    </dl>
-                  )}
-                </div>
-                {a.photos.length > 0 && (
-                  <div class="entry-photos">
-                    <Gallery group={a.id} photos={a.photos.map((slug) => ({ slug, alt: caption(slug, lang) }))} enlargeLabel={t('common.enlarge')} />
-                    {a.photoNote && <p class="small muted note">{tr(a.photoNote, lang)}</p>}
-                  </div>
-                )}
-              </article>
-            </li>
+          kinds.map((k) => (
+            <button type="button" class="chip f-btn" data-filter={k.kind} aria-pressed="false">
+              <Icon name={kindIcon[k.kind]} size={15} />
+              {t(`activities.kind.${k.kind}`)} <span class="n">{formatDigits(k.count, lang)}</span>
+            </button>
           ))
         }
-      </ol>
+        <span class="f-count" aria-live="polite" data-count></span>
+      </div>
+
+      <div class="feed">
+        {
+          groups.map((g) => (
+            <section class="year-group" data-group aria-label={g.year}>
+              <h2 class="year-mark">{g.year}</h2>
+              <ol>
+                {g.items.map((a) => (
+                  <li id={a.id} data-kind={a.kind}>
+                    <article class:list={['card', 'entry', a.photos.length === 0 && 'no-photos']}>
+                      <div class="entry-text">
+                        <p class="meta">
+                          <span class="chip">
+                            <Icon name={kindIcon[a.kind]} size={15} />
+                            {t(`activities.kind.${a.kind}`)}
+                          </span>
+                          <time datetime={a.date}>
+                            <Icon name="calendar" size={15} />
+                            {when(a)}
+                          </time>
+                        </p>
+                        <h3>{tr(a.title, lang)}</h3>
+                        {a.text.map((p) => (
+                          <p>{tr(p, lang)}</p>
+                        ))}
+                        {a.facts && (
+                          <dl class="facts">
+                            {a.facts.map((f) => (
+                              <div>
+                                <dt>{tr(f.label, lang)}</dt>
+                                <dd>{tr(f.value, lang)}</dd>
+                              </div>
+                            ))}
+                          </dl>
+                        )}
+                      </div>
+                      {a.photos.length > 0 && (
+                        <div class="entry-photos">
+                          <Gallery group={a.id} photos={a.photos.map((slug) => ({ slug, alt: caption(slug, lang) }))} enlargeLabel={t('common.enlarge')} />
+                          {a.photoNote && <p class="small muted note">{tr(a.photoNote, lang)}</p>}
+                        </div>
+                      )}
+                    </article>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          ))
+        }
+      </div>
     </div>
   </section>
 
-  <section class="section">
+  <section class="section" data-group>
     <div class="container">
       <SectionHead title={t('activities.undated')} intro={t('activities.undatedIntro')} />
       <ul class="archive">
         {
           undated.map((a) => (
-            <li class="card archive-card" id={a.id}>
+            <li class="card archive-card" id={a.id} data-kind={a.kind}>
               <Gallery group={a.id} photos={a.photos.map((slug) => ({ slug, alt: caption(slug, lang) }))} enlargeLabel={t('common.enlarge')} />
               <div class="archive-text">
                 <h3>{tr(a.title, lang)}</h3>
@@ -121,23 +152,100 @@ const kindIcon = { campaign: 'brush-cleaning', visit: 'handshake', training: 'gr
   </section>
 </BaseLayout>
 
+<script>
+  const root = document.querySelector<HTMLElement>('[data-activities]');
+  if (root) {
+    const buttons = [...root.querySelectorAll<HTMLButtonElement>('[data-filter]')];
+    const items = [...document.querySelectorAll<HTMLElement>('li[data-kind]')];
+    const groups = [...document.querySelectorAll<HTMLElement>('[data-group]')];
+    const count = root.querySelector<HTMLElement>('[data-count]')!;
+    const nepali = root.dataset.lang === 'ne';
+    const digits = (n: number) => (nepali ? String(n).replace(/\d/g, (d) => '०१२३४५६७८९'[Number(d)]) : String(n));
+
+    const show = (kind: string) => {
+      buttons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.filter === kind)));
+      let shown = 0;
+      for (const li of items) {
+        li.hidden = kind !== 'all' && li.dataset.kind !== kind;
+        if (!li.hidden) shown++;
+      }
+      // Hide a year (or the photo archive) when none of its entries match.
+      for (const g of groups) g.hidden = !g.querySelector('li[data-kind]:not([hidden])');
+      count.textContent =
+        kind === 'all' ? '' : root.dataset.showing!.replace('{n}', digits(shown)).replace('{total}', digits(items.length));
+    };
+    buttons.forEach((b) => b.addEventListener('click', () => show(b.dataset.filter!)));
+  }
+</script>
+
 <style>
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .f-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-right: 0.25rem;
+    font-weight: 600;
+    color: var(--muted);
+  }
+
+  .f-btn {
+    cursor: pointer;
+    padding: 0.35rem 0.85rem;
+    background: #fff;
+    border-color: var(--line-strong);
+    color: var(--ink);
+  }
+
+  .f-btn .n {
+    color: var(--muted);
+    font-weight: 400;
+  }
+
+  .f-btn:hover {
+    border-color: var(--green);
+  }
+
+  .f-btn[aria-pressed='true'] {
+    background: var(--green);
+    border-color: var(--green);
+    color: #fff;
+  }
+
+  .f-btn[aria-pressed='true'] .n {
+    color: #d6eccb;
+  }
+
+  .f-count {
+    margin-left: 0.5rem;
+    color: var(--muted);
+    font-size: 0.92rem;
+  }
+
   .feed {
-    list-style: none;
     display: grid;
     gap: 1.25rem;
     max-width: 1040px;
   }
 
-  .feed li {
-    scroll-margin-top: calc(var(--header-h) + 1rem);
+  .year-group ol {
+    list-style: none;
+    display: grid;
+    gap: 1.25rem;
   }
 
   .year-mark {
     display: flex;
     align-items: center;
     gap: 1rem;
-    margin: 1rem 0 0.25rem;
+    margin: 1rem 0 1.25rem;
     font-family: var(--font-head);
     font-size: var(--step-2);
     font-weight: 700;
@@ -173,7 +281,7 @@ const kindIcon = { campaign: 'brush-cleaning', visit: 'handshake', training: 'gr
     align-content: start;
   }
 
-  .entry-text h2 {
+  .entry-text h3 {
     font-size: var(--step-1);
     font-weight: 600;
   }
@@ -235,7 +343,6 @@ const kindIcon = { campaign: 'brush-cleaning', visit: 'handshake', training: 'gr
     gap: 1rem;
     align-content: start;
     padding: 0.75rem 0.75rem 1.25rem;
-    scroll-margin-top: calc(var(--header-h) + 1rem);
   }
 
   .archive-text {

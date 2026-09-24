@@ -42,6 +42,17 @@ import TrashIcon from '@lucide/astro/icons/trash';
 import TruckIcon from '@lucide/astro/icons/truck';
 import UsersIcon from '@lucide/astro/icons/users';
 import XIcon from '@lucide/astro/icons/x';
+import SearchIcon from '@lucide/astro/icons/search';
+import TriangleAlertIcon from '@lucide/astro/icons/triangle-alert';
+import ChevronDownIcon from '@lucide/astro/icons/chevron-down';
+import PrinterIcon from '@lucide/astro/icons/printer';
+import CopyIcon from '@lucide/astro/icons/copy';
+import ArrowUpIcon from '@lucide/astro/icons/arrow-up';
+import MessageSquareTextIcon from '@lucide/astro/icons/message-square-text';
+import CircleQuestionMarkIcon from '@lucide/astro/icons/circle-question-mark';
+import SendIcon from '@lucide/astro/icons/send';
+import ListFilterIcon from '@lucide/astro/icons/list-filter';
+import ArrowDownIcon from '@lucide/astro/icons/arrow-down';
 
 export const icons = {
   'arrow-right': ArrowRightIcon,
@@ -87,6 +98,17 @@ export const icons = {
   truck: TruckIcon,
   users: UsersIcon,
   x: XIcon,
+  'search': SearchIcon,
+  'triangle-alert': TriangleAlertIcon,
+  'chevron-down': ChevronDownIcon,
+  'printer': PrinterIcon,
+  'copy': CopyIcon,
+  'arrow-up': ArrowUpIcon,
+  'message-square-text': MessageSquareTextIcon,
+  'circle-question-mark': CircleQuestionMarkIcon,
+  'send': SendIcon,
+  'list-filter': ListFilterIcon,
+  'arrow-down': ArrowDownIcon,
 } as const;
 
 export type IconName = keyof typeof icons;

@@ -3,52 +3,48 @@ import BaseLayout from '~/layouts/BaseLayout.astro';
 import Icon from '~/components/Icon.astro';
 import Photo from '~/components/Photo.astro';
 import PageHero from '~/components/PageHero.astro';
+import PageNav from '~/components/PageNav.astro';
+import SortFinder from '~/components/SortFinder.astro';
 import SectionHead from '~/components/SectionHead.astro';
 import YouTube from '~/components/YouTube.astro';
-import { sortingGuide } from '~/data/programmes';
 import { publications, research, compostMethods } from '~/data/resources';
 import { studies } from '~/data/partners';
 import { caption } from '~/data/photos';
-import { org, mailto } from '~/data/site';
-import { fill } from '~/i18n/ui';
+import { org } from '~/data/site';
 import { formatDigits, localizePath, tr, useTranslations, type Lang } from '~/i18n/utils';
 
 type Props = { lang: Lang };
 const { lang } = Astro.props;
 const t = useTranslations(lang);
+
+/** Publications have no PDFs yet, so the button opens the request form with the title filled in. */
+const copyHref = (title: string) =>
+  `${localizePath('/contact/', lang)}?type=copy&item=${encodeURIComponent(title)}#request`;
 ---
 
 <BaseLayout title={t('resources.title')} description={t('resources.lead')}>
   <PageHero eyebrow={t('nav.resources')} title={t('resources.title')} lead={t('resources.lead')} />
+  <PageNav
+    label={t('pagenav.label')}
+    items={[
+      { id: 'finder', label: t('finder.eyebrow') },
+      { id: 'composting', label: t('resources.nav.compost') },
+      { id: 'publications', label: t('resources.pubsEyebrow') },
+      { id: 'research', label: t('resources.researchEyebrow') },
+      { id: 'documentary', label: t('home.video.eyebrow') },
+    ]}
+  />
 
-  <!-- Sorting guide -->
-  <section class="section section-white" id="sorting">
+  <!-- Which bucket? -->
+  <section class="section section-white" id="finder">
     <div class="container">
-      <SectionHead eyebrow={t('resources.sortEyebrow')} title={t('resources.sortTitle')} intro={t('home.sort.intro')} />
-      <div class="sort">
-        {
-          (['green', 'red'] as const).map((key) => (
-            <div class:list={['bucket', `bucket-${key}`]}>
-              <span class="bucket-icon" aria-hidden="true">
-                <Icon name="trash" size={34} />
-              </span>
-              <h3>{tr(sortingGuide[key].label, lang)}</h3>
-              <ul class="check-list">
-                {sortingGuide[key].items.map((item) => (
-                  <li>
-                    <Icon name="check" size={16} />
-                    <span>{tr(item, lang)}</span>
-                  </li>
-                ))}
-              </ul>
-              <p class="bucket-note">{tr(sortingGuide[key].note, lang)}</p>
-            </div>
-          ))
-        }
-        <div class="photo sort-photo">
-          <Photo slug="segregation-pair" alt={caption('segregation-pair', lang)} sizes="(min-width: 1000px) 360px, 100vw" />
-        </div>
+      <div class="finder-head">
+        <SectionHead eyebrow={t('finder.eyebrow')} title={t('finder.title')} intro={t('finder.intro')} />
+        <a class="btn btn-outline poster-link" href={localizePath('/poster/', lang)}>
+          <Icon name="printer" size={18} /> {t('finder.poster')}
+        </a>
       </div>
+      <SortFinder lang={lang} />
     </div>
   </section>
 
@@ -94,7 +90,7 @@ const t = useTranslations(lang);
                     <Icon name="download" size={16} /> {t('cta.download')}
                   </a>
                 ) : (
-                  <a class="btn btn-outline btn-sm" href={mailto(fill(t('contact.subject.copy'), { title: tr(p.title, lang) }))}>
+                  <a class="btn btn-outline btn-sm" href={copyHref(tr(p.title, lang))}>
                     <Icon name="mail" size={16} /> {t('cta.askCopy')}
                   </a>
                 )}
@@ -150,7 +146,7 @@ const t = useTranslations(lang);
   </section>
 
   <!-- Video -->
-  <section class="section section-blue">
+  <section class="section section-blue" id="documentary">
     <div class="container video">
       <SectionHead eyebrow={t('home.video.eyebrow')} title={t('home.video.title')} intro={t('home.video.text')} align="center" />
       <YouTube id={org.documentaryId} title="NEPCEMAC documentary" playLabel={t('home.video.play')} />
@@ -159,64 +155,16 @@ const t = useTranslations(lang);
 </BaseLayout>
 
 <style>
-  .sort {
-    display: grid;
-    grid-template-columns: 1fr 1fr 0.9fr;
-    gap: 1.25rem;
-    align-items: stretch;
+  .finder-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    justify-content: space-between;
+    gap: 0 2rem;
   }
 
-  .bucket {
-    display: grid;
-    gap: 0.9rem;
-    align-content: start;
-    padding: 1.5rem;
-    border-radius: var(--radius);
-    border: 1px solid;
-  }
-
-  .bucket-icon {
-    display: grid;
-    place-items: center;
-    width: 64px;
-    height: 64px;
-    border-radius: 18px;
-    color: #fff;
-  }
-
-  .bucket h3 {
-    font-size: 1.15rem;
-  }
-
-  .bucket-green {
-    background: var(--green-50);
-    border-color: var(--green-100);
-  }
-
-  .bucket-green .bucket-icon {
-    background: var(--green-500);
-  }
-
-  .bucket-red {
-    background: var(--bucket-red-50);
-    border-color: #f4d6d1;
-  }
-
-  .bucket-red .bucket-icon {
-    background: var(--bucket-red);
-  }
-
-  .bucket-red :global(.check-list .icon) {
-    color: var(--bucket-red);
-  }
-
-  .bucket-note {
-    font-weight: 600;
-    color: var(--ink);
-  }
-
-  .sort-photo {
-    min-height: 280px;
+  .poster-link {
+    margin-bottom: clamp(2rem, 4vw, 3rem);
   }
 
   .methods {
@@ -353,14 +301,6 @@ const t = useTranslations(lang);
   }
 
   @media (max-width: 1000px) {
-    .sort {
-      grid-template-columns: 1fr 1fr;
-    }
-    .sort-photo {
-      grid-column: 1 / -1;
-      aspect-ratio: 16 / 9;
-      min-height: 0;
-    }
     .pubs-grid,
     .research-grid {
       grid-template-columns: 1fr;
@@ -371,9 +311,6 @@ const t = useTranslations(lang);
   }
 
   @media (max-width: 640px) {
-    .sort {
-      grid-template-columns: 1fr;
-    }
     .pub {
       grid-template-columns: auto 1fr;
     }

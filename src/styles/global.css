@@ -25,6 +25,10 @@
   --blue-100: #dfe9f7;
   --blue-50: #eff4fb;
 
+  /* Only for hazardous waste (keep separate) */
+  --hazard: #9a5b00;
+  --hazard-50: #fdf5e6;
+
   /* Only for the red bucket */
   --bucket-red: #c2372b;
   --bucket-red-50: #fcefed;
@@ -75,11 +79,20 @@
   box-sizing: border-box;
 }
 
+/* Jump links land below the sticky header (and the section bar, where a page has one). */
+:root {
+  --anchor-offset: calc(var(--header-h) + 1rem);
+}
+
+:root:has(.page-nav) {
+  --anchor-offset: calc(var(--header-h) + 4.5rem);
+}
+
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
   scroll-behavior: smooth;
-  scroll-padding-top: calc(var(--header-h) + 1rem);
+  scroll-padding-top: var(--anchor-offset);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -560,4 +573,19 @@ a:hover {
 .check-list .icon {
   margin-top: 0.3em;
   color: var(--green-600);
+}
+
+/* ---------- Print ---------- */
+@media print {
+  .site-header,
+  .site-footer,
+  .page-nav,
+  .skip-link,
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+  }
 }

@@ -4,18 +4,19 @@ import Icon from '~/components/Icon.astro';
 import OfficeMap from '~/components/OfficeMap.astro';
 import PageHero from '~/components/PageHero.astro';
 import SectionHead from '~/components/SectionHead.astro';
-import { org, directionsUrl, mailto } from '~/data/site';
-import { formatDigits, telHref, tr, useTranslations, type Lang } from '~/i18n/utils';
+import RequestForm from '~/components/RequestForm.astro';
+import { org, directionsUrl } from '~/data/site';
+import { formatDigits, localizePath, telHref, tr, useTranslations, type Lang } from '~/i18n/utils';
 
 type Props = { lang: Lang };
 const { lang } = Astro.props;
 const t = useTranslations(lang);
 
 const ways = [
-  { icon: 'brush-cleaning', title: t('contact.volunteer'), text: t('contact.volunteerText'), subject: t('contact.subject.volunteer') },
-  { icon: 'school', title: t('contact.invite'), text: t('contact.inviteText'), subject: t('contact.subject.invite') },
-  { icon: 'handshake', title: t('contact.partner'), text: t('contact.partnerText'), subject: t('contact.subject.partner') },
-  { icon: 'flask-conical', title: t('contact.research'), text: t('contact.researchText'), subject: t('contact.subject.research') },
+  { icon: 'school', title: t('contact.invite'), text: t('contact.inviteText'), type: 'programme' },
+  { icon: 'brush-cleaning', title: t('contact.volunteer'), text: t('contact.volunteerText'), type: 'volunteer' },
+  { icon: 'handshake', title: t('contact.partner'), text: t('contact.partnerText'), type: 'partner' },
+  { icon: 'flask-conical', title: t('contact.research'), text: t('contact.researchText'), type: 'research' },
 ] as const;
 ---
 
@@ -98,8 +99,8 @@ const ways = [
               </span>
               <h3>{w.title}</h3>
               <p>{w.text}</p>
-              <a class="btn btn-outline btn-sm" href={mailto(w.subject)}>
-                <Icon name="mail" size={16} /> {t('cta.email')}
+              <a class="btn btn-outline btn-sm" href={`?type=${w.type}#request`} data-pick-type={w.type}>
+                <Icon name="arrow-down" size={16} /> {t('form.useForm')}
               </a>
             </li>
           ))
@@ -107,7 +108,35 @@ const ways = [
       </ul>
     </div>
   </section>
+
+  <section class="section section-white" id="request">
+    <div class="container request-wrap">
+      <div class="request-side">
+        <SectionHead eyebrow={t('form.eyebrow')} title={t('form.title')} intro={t('form.intro')} />
+        <p class="faq-note">
+          <Icon name="circle-question-mark" size={20} />
+          <span>{t('faq.lead')} <a href={localizePath('/faq/', lang)}>{t('faq.title')}</a></span>
+        </p>
+      </div>
+      <RequestForm lang={lang} />
+    </div>
+  </section>
 </BaseLayout>
+
+<script>
+  // Choosing a card on this page selects the matching request type without reloading.
+  document.querySelectorAll<HTMLAnchorElement>('[data-pick-type]').forEach((a) =>
+    a.addEventListener('click', (e) => {
+      const radio = document.querySelector<HTMLInputElement>(`input[name="type"][value="${a.dataset.pickType}"]`);
+      if (!radio) return;
+      e.preventDefault();
+      radio.checked = true;
+      radio.dispatchEvent(new Event('change', { bubbles: true }));
+      document.getElementById('request')?.scrollIntoView({ behavior: 'smooth' });
+      history.replaceState(null, '', a.href);
+    }),
+  );
+</script>
 
 <style>
   .contact-grid {
@@ -220,7 +249,40 @@ const ways = [
     justify-self: start;
   }
 
+  .request-side {
+    position: sticky;
+    top: var(--anchor-offset);
+  }
+
+  .request-wrap {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    gap: clamp(1.5rem, 4vw, 3.5rem);
+    align-items: start;
+  }
+
+  .faq-note {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.6rem;
+    padding: 1rem 1.2rem;
+    border-radius: var(--radius-sm);
+    background: var(--blue-50);
+    border: 1px solid var(--blue-100);
+  }
+
+  .faq-note :global(.icon) {
+    margin-top: 0.2em;
+    color: var(--blue-700);
+  }
+
   @media (max-width: 900px) {
+    .request-side {
+      position: static;
+    }
+    .request-wrap {
+      grid-template-columns: 1fr;
+    }
     .contact-grid {
       grid-template-columns: 1fr;
     }

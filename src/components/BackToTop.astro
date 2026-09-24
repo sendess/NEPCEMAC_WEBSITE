@@ -1,0 +1,48 @@
+---
+import Icon from './Icon.astro';
+
+type Props = { label: string };
+const { label } = Astro.props;
+---
+
+<a href="#main" class="to-top no-print" aria-label={label} title={label} data-to-top hidden>
+  <Icon name="arrow-up" size={22} />
+</a>
+
+<script>
+  const btn = document.querySelector<HTMLAnchorElement>('[data-to-top]');
+  if (btn) {
+    const toggle = () => (btn.hidden = scrollY < innerHeight * 1.5);
+    addEventListener('scroll', toggle, { passive: true });
+    toggle();
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+      document.querySelector<HTMLElement>('.brand')?.focus({ preventScroll: true });
+    });
+  }
+</script>
+
+<style>
+  .to-top {
+    position: fixed;
+    right: clamp(0.85rem, 3vw, 1.5rem);
+    bottom: clamp(0.85rem, 3vw, 1.5rem);
+    z-index: 45;
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--green);
+    color: #fff;
+    box-shadow: var(--shadow-lg);
+    transition: background-color 0.2s var(--ease), translate 0.2s var(--ease);
+  }
+
+  .to-top:hover {
+    background: var(--green-800);
+    color: #fff;
+    translate: 0 -2px;
+  }
+</style>

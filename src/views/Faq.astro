@@ -1,0 +1,206 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import Icon from '~/components/Icon.astro';
+import PageHero from '~/components/PageHero.astro';
+import PageNav from '~/components/PageNav.astro';
+import { faqGroups } from '~/data/faq';
+import { org } from '~/data/site';
+import { formatDigits, localizePath, telHref, tr, useTranslations, type Lang } from '~/i18n/utils';
+
+type Props = { lang: Lang };
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const href = (h: string) => (h.startsWith('/') ? localizePath(h, lang) : h);
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqGroups.flatMap((g) =>
+    g.items.map((f) => ({
+      '@type': 'Question',
+      name: tr(f.q, lang),
+      acceptedAnswer: { '@type': 'Answer', text: f.a.map((p) => tr(p, lang)).join(' ') },
+    })),
+  ),
+};
+---
+
+<BaseLayout title={t('faq.title')} description={t('faq.lead')}>
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+  <PageHero eyebrow={t('nav.faq')} title={t('faq.title')} lead={t('faq.lead')} />
+  <PageNav label={t('pagenav.label')} items={faqGroups.map((g) => ({ id: g.id, label: tr(g.title, lang) }))} />
+
+  <section class="section section-white">
+    <div class="container faq-layout">
+      <div class="groups">
+        {
+          faqGroups.map((g) => (
+            <section class="group" id={g.id} aria-labelledby={`${g.id}-title`}>
+              <h2 id={`${g.id}-title`}>{tr(g.title, lang)}</h2>
+              <div class="items">
+                {g.items.map((f) => (
+                  <details id={f.id}>
+                    <summary>
+                      <span>{tr(f.q, lang)}</span>
+                      <Icon name="chevron-down" size={20} />
+                    </summary>
+                    <div class="answer">
+                      {f.a.map((p) => (
+                        <p>{tr(p, lang)}</p>
+                      ))}
+                      {f.link && (
+                        <a class="link-arrow" href={href(f.link.href)}>
+                          {tr(f.link.label, lang)} <Icon name="arrow-right" size={16} />
+                        </a>
+                      )}
+                    </div>
+                  </details>
+                ))}
+              </div>
+            </section>
+          ))
+        }
+      </div>
+
+      <aside class="help card card-pad">
+        <span class="icon-badge"><Icon name="circle-question-mark" size={24} /></span>
+        <h2>{t('faq.more')}</h2>
+        <p>{t('faq.moreText')}</p>
+        <a class="btn btn-primary" href={`${localizePath('/contact/', lang)}?type=other#request`}>{t('form.title')}</a>
+        <p class="phones">
+          <Icon name="phone" size={18} />
+          <span>
+            {org.phones.map((p, i) => (
+              <>
+                {i > 0 && ', '}
+                <a href={telHref(p)}>{formatDigits(p, lang)}</a>
+              </>
+            ))}
+          </span>
+        </p>
+        <p class="small muted">{tr(org.hours, lang)}</p>
+      </aside>
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  // Open the question named in the link (e.g. /faq/#who-collects).
+  const open = () => {
+    const el = location.hash && document.getElementById(decodeURIComponent(location.hash.slice(1)));
+    if (el instanceof HTMLDetailsElement) {
+      el.open = true;
+      el.scrollIntoView();
+    }
+  };
+  open();
+  addEventListener('hashchange', open);
+</script>
+
+<style>
+  .faq-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: start;
+  }
+
+  .groups {
+    display: grid;
+    gap: clamp(2rem, 5vw, 3rem);
+  }
+
+  .group h2 {
+    margin-bottom: 1rem;
+    font-size: var(--step-2);
+  }
+
+  .items {
+    display: grid;
+    gap: 0.6rem;
+  }
+
+  details {
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--line);
+    background: var(--paper);
+    transition: border-color 0.2s var(--ease), background-color 0.2s var(--ease);
+  }
+
+  details[open] {
+    border-color: var(--green-200);
+    background: #fff;
+    box-shadow: var(--shadow-sm);
+  }
+
+  summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.2rem;
+    cursor: pointer;
+    list-style: none;
+    font-weight: 600;
+    color: var(--ink);
+    font-size: 1.05rem;
+  }
+
+  summary::-webkit-details-marker {
+    display: none;
+  }
+
+  summary :global(.icon) {
+    flex: none;
+    color: var(--green-600);
+    transition: rotate 0.2s var(--ease);
+  }
+
+  details[open] summary :global(.icon) {
+    rotate: 180deg;
+  }
+
+  summary:hover {
+    color: var(--green);
+  }
+
+  .answer {
+    display: grid;
+    gap: 0.75rem;
+    justify-items: start;
+    padding: 0 1.2rem 1.2rem;
+    color: var(--text);
+  }
+
+  .help {
+    position: sticky;
+    top: calc(var(--anchor-offset) + 0.5rem);
+    display: grid;
+    gap: 0.85rem;
+    justify-items: start;
+  }
+
+  .help h2 {
+    font-size: var(--step-1);
+  }
+
+  .phones {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 600;
+  }
+
+  .phones :global(.icon) {
+    color: var(--green-600);
+  }
+
+  @media (max-width: 900px) {
+    .faq-layout {
+      grid-template-columns: 1fr;
+    }
+    .help {
+      position: static;
+    }
+  }
+</style>

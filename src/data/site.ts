@@ -83,7 +83,7 @@ export const circle: { name: L; note: L; logo: string; href?: string }[] = [
   },
 ];
 
-export type NavItem = { key: 'about' | 'programmes' | 'partners' | 'activities' | 'team' | 'resources' | 'contact'; href: string };
+export type NavItem = { key: 'about' | 'programmes' | 'partners' | 'activities' | 'team' | 'resources' | 'faq' | 'contact'; href: string };
 
 export const nav: NavItem[] = [
   { key: 'about', href: '/about/' },
@@ -92,6 +92,7 @@ export const nav: NavItem[] = [
   { key: 'activities', href: '/activities/' },
   { key: 'team', href: '/team/' },
   { key: 'resources', href: '/resources/' },
+  { key: 'faq', href: '/faq/' },
 ];
 
 export function directionsUrl({ lat, lng }: { lat: number; lng: number }): string {

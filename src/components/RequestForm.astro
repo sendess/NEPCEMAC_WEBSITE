@@ -1,0 +1,381 @@
+---
+// Request form without a backend: it turns the answers into a ready-to-send message
+// (email app, or copy and paste anywhere). Nothing is stored on the site.
+// Level 2 can post the same fields to a database instead.
+import Icon from './Icon.astro';
+import { org } from '~/data/site';
+import { formatDigits, telHref, useTranslations, type Lang } from '~/i18n/utils';
+
+type Props = { lang: Lang };
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+
+const types = [
+  { id: 'programme', icon: 'school' },
+  { id: 'volunteer', icon: 'brush-cleaning' },
+  { id: 'partner', icon: 'handshake' },
+  { id: 'research', icon: 'flask-conical' },
+  { id: 'copy', icon: 'book-open' },
+  { id: 'other', icon: 'message-square-text' },
+] as const;
+
+const strings = {
+  request: t('form.eyebrow'),
+  subject: t('form.subject'),
+  copyItem: t('form.copyItem'),
+  whereItem: t('form.whereItem'),
+  errorName: t('form.errorName'),
+  errorContact: t('form.errorContact'),
+  copied: t('form.copied'),
+  copy: t('form.copy'),
+  footer: lang === 'ne' ? '— nepcemac.org.np बाट पठाइएको' : '— Sent from nepcemac.org.np',
+};
+---
+
+<form class="request" data-request novalidate data-email={org.email}>
+  <script is:inline type="application/json" data-request-strings set:html={JSON.stringify(strings)} />
+
+  <fieldset class="types">
+    <legend>{t('form.type')}</legend>
+    <div class="type-grid">
+      {
+        types.map((ty, i) => (
+          <label class="type">
+            <input type="radio" name="type" value={ty.id} checked={i === 0} data-label={t(`form.type.${ty.id}`)} />
+            <span class="type-card">
+              <Icon name={ty.icon} size={22} />
+              <span>{t(`form.type.${ty.id}`)}</span>
+            </span>
+          </label>
+        ))
+      }
+    </div>
+  </fieldset>
+
+  <div class="fields">
+    <div class="field">
+      <label for="rq-name">{t('form.name')}</label>
+      <input id="rq-name" name="name" autocomplete="name" required aria-describedby="rq-name-err" />
+      <p class="error" id="rq-name-err" hidden></p>
+    </div>
+    <div class="field" data-for="programme partner research volunteer other">
+      <label for="rq-org">{t('form.org')} <span class="opt">({t('form.optional')})</span></label>
+      <input id="rq-org" name="org" autocomplete="organization" />
+    </div>
+    <div class="field">
+      <label for="rq-phone">{t('form.phone')}</label>
+      <input id="rq-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" aria-describedby="rq-contact-err" />
+    </div>
+    <div class="field">
+      <label for="rq-email">{t('form.email')} <span class="opt">({t('form.optional')})</span></label>
+      <input id="rq-email" name="email" type="email" autocomplete="email" aria-describedby="rq-contact-err" />
+    </div>
+    <p class="error wide" id="rq-contact-err" hidden></p>
+    <div class="field" data-for="programme research volunteer copy other">
+      <label for="rq-area">{t('form.area')} <span class="opt">({t('form.optional')})</span></label>
+      <input id="rq-area" name="area" autocomplete="address-level2" />
+    </div>
+    <div class="field" data-for="programme research volunteer">
+      <label for="rq-date">{t('form.date')} <span class="opt">({t('form.optional')})</span></label>
+      <input id="rq-date" name="date" />
+    </div>
+    <div class="field" data-for="programme research volunteer">
+      <label for="rq-people">{t('form.people')} <span class="opt">({t('form.optional')})</span></label>
+      <input id="rq-people" name="people" type="number" min="1" inputmode="numeric" />
+    </div>
+    <div class="field wide">
+      <label for="rq-message">{t('form.message')} <span class="opt">({t('form.optional')})</span></label>
+      <textarea id="rq-message" name="message" rows="4"></textarea>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn btn-primary" type="submit">
+      <Icon name="send" size={18} />
+      {t('form.submit')}
+    </button>
+    <p class="small muted">{t('form.privacy')}</p>
+  </div>
+
+  <div class="ready" data-request-ready hidden tabindex="-1" role="region" aria-labelledby="rq-ready-title">
+    <h3 id="rq-ready-title"><Icon name="circle-check" size={22} /> {t('form.readyTitle')}</h3>
+    <p>{t('form.readyText')}</p>
+    <textarea readonly rows="9" data-request-preview aria-label={t('form.message')}></textarea>
+    <div class="btn-row">
+      <a class="btn btn-primary" data-request-mailto href={`mailto:${org.email}`}><Icon name="mail" size={18} /> {t('form.openEmail')}</a>
+      <button class="btn btn-outline" type="button" data-request-copy><Icon name="copy" size={18} /> <span>{t('form.copy')}</span></button>
+      <button class="btn btn-outline" type="button" data-request-edit>{t('form.edit')}</button>
+    </div>
+    <p class="small muted">
+      {org.email} ·
+      {org.phones.map((p, i) => (
+        <>
+          {i > 0 && ', '}
+          <a href={telHref(p)}>{formatDigits(p, lang)}</a>
+        </>
+      ))}
+    </p>
+  </div>
+</form>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>('[data-request]');
+  if (form) {
+    const s = JSON.parse(form.querySelector('[data-request-strings]')!.textContent!);
+    const ready = form.querySelector<HTMLElement>('[data-request-ready]')!;
+    const preview = form.querySelector<HTMLTextAreaElement>('[data-request-preview]')!;
+    const mailto = form.querySelector<HTMLAnchorElement>('[data-request-mailto]')!;
+    const copyBtn = form.querySelector<HTMLButtonElement>('[data-request-copy]')!;
+    const field = (name: string) => form.elements.namedItem(name) as HTMLInputElement;
+    const labelFor = (name: string) =>
+      (form.querySelector(`label[for="rq-${name}"]`)?.firstChild?.textContent ?? name).trim();
+
+    // Only show the fields that matter for the chosen request type.
+    const showFields = () => {
+      const type = (form.querySelector<HTMLInputElement>('input[name="type"]:checked')?.value) ?? 'other';
+      form.querySelectorAll<HTMLElement>('[data-for]').forEach((el) => {
+        el.hidden = !el.dataset.for!.split(' ').includes(type);
+      });
+    };
+    form.querySelectorAll('input[name="type"]').forEach((r) => r.addEventListener('change', showFields));
+
+    const setError = (id: string, msg: string, inputs: HTMLInputElement[]) => {
+      const el = form.querySelector<HTMLElement>(`#${id}`)!;
+      el.textContent = msg;
+      el.hidden = !msg;
+      inputs.forEach((i) => (msg ? i.setAttribute('aria-invalid', 'true') : i.removeAttribute('aria-invalid')));
+    };
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = field('name').value.trim();
+      const phone = field('phone').value.trim();
+      const email = field('email').value.trim();
+      setError('rq-name-err', name ? '' : s.errorName, [field('name')]);
+      setError('rq-contact-err', phone || email ? '' : s.errorContact, [field('phone'), field('email')]);
+      if (!name) return field('name').focus();
+      if (!phone && !email) return field('phone').focus();
+
+      const typeInput = form.querySelector<HTMLInputElement>('input[name="type"]:checked')!;
+      const lines = [`${s.request}: ${typeInput.dataset.label}`, ''];
+      for (const key of ['name', 'org', 'phone', 'email', 'area', 'date', 'people']) {
+        const input = field(key);
+        if (input.closest<HTMLElement>('[hidden]')) continue;
+        if (input.value.trim()) lines.push(`${labelFor(key)}: ${input.value.trim()}`);
+      }
+      const message = (field('message') as unknown as HTMLTextAreaElement).value.trim();
+      if (message) lines.push('', message);
+      lines.push('', s.footer);
+      const body = lines.join('\n');
+      const subject = s.subject.replace('{type}', typeInput.dataset.label);
+
+      preview.value = body;
+      mailto.href = `mailto:${form.dataset.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      ready.hidden = false;
+      ready.focus();
+      ready.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    });
+
+    copyBtn.addEventListener('click', async () => {
+      const label = copyBtn.querySelector('span')!;
+      try {
+        await navigator.clipboard.writeText(preview.value);
+        label.textContent = s.copied;
+      } catch {
+        // No clipboard access (e.g. plain http): select the text so Ctrl+C works.
+        preview.focus();
+        preview.select();
+      }
+      setTimeout(() => (label.textContent = s.copy), 2000);
+    });
+
+    form.querySelector('[data-request-edit]')!.addEventListener('click', () => {
+      ready.hidden = true;
+      field('name').focus();
+    });
+
+    // Links from other pages can choose the request type and pre-fill the message.
+    const params = new URLSearchParams(location.search);
+    const type = params.get('type');
+    const item = params.get('item');
+    const radio = type && form.querySelector<HTMLInputElement>(`input[name="type"][value="${CSS.escape(type)}"]`);
+    if (radio) radio.checked = true;
+    if (item) {
+      (field('message') as unknown as HTMLTextAreaElement).value = (type === 'copy' ? s.copyItem : s.whereItem).replace('{item}', item);
+    }
+    showFields();
+  }
+</script>
+
+<style>
+  .request {
+    display: grid;
+    gap: 1.5rem;
+    padding: clamp(1.25rem, 3vw, 2rem);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow-sm);
+  }
+
+  fieldset {
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  legend,
+  label {
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  legend {
+    margin-bottom: 0.75rem;
+    font-size: var(--step-1);
+  }
+
+  .type-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.6rem;
+  }
+
+  .type input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .type-card {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    height: 100%;
+    padding: 0.8rem 1rem;
+    border-radius: var(--radius-sm);
+    border: 1.5px solid var(--line-strong);
+    background: #fff;
+    cursor: pointer;
+    font-weight: 600;
+    line-height: 1.35;
+    transition: border-color 0.2s var(--ease), background-color 0.2s var(--ease);
+  }
+
+  .type-card :global(.icon) {
+    flex: none;
+    color: var(--green-600);
+  }
+
+  .type input:checked + .type-card {
+    border-color: var(--green);
+    background: var(--green-50);
+    box-shadow: inset 0 0 0 1px var(--green);
+  }
+
+  .type input:focus-visible + .type-card {
+    outline: 3px solid var(--blue);
+    outline-offset: 2px;
+  }
+
+  .fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem 1.25rem;
+  }
+
+  .field {
+    display: grid;
+    gap: 0.35rem;
+    align-content: start;
+  }
+
+  .wide {
+    grid-column: 1 / -1;
+  }
+
+  .opt {
+    color: var(--muted);
+    font-weight: 400;
+    font-size: 0.9em;
+  }
+
+  input:not([type='radio']),
+  textarea {
+    width: 100%;
+    min-height: 48px;
+    padding: 0.65rem 0.85rem;
+    border-radius: var(--radius-sm);
+    border: 1.5px solid var(--line-strong);
+    background: #fff;
+    color: var(--ink);
+  }
+
+  textarea {
+    resize: vertical;
+    line-height: 1.5;
+  }
+
+  input:focus,
+  textarea:focus {
+    outline: none;
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px var(--green-100);
+  }
+
+  [aria-invalid='true'] {
+    border-color: var(--bucket-red) !important;
+  }
+
+  .error {
+    color: var(--bucket-red);
+    font-weight: 600;
+    font-size: 0.92rem;
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1.25rem;
+  }
+
+  .actions p {
+    max-width: 46ch;
+  }
+
+  .ready {
+    display: grid;
+    gap: 0.85rem;
+    padding: 1.25rem;
+    border-radius: var(--radius);
+    background: var(--green-50);
+    border: 1px solid var(--green-200);
+    outline: none;
+  }
+
+  .ready h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--green-800);
+  }
+
+  .ready textarea {
+    font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+    font-size: 0.9rem;
+    background: #fff;
+  }
+
+  @media (max-width: 760px) {
+    .type-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .fields {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

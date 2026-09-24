@@ -3,6 +3,7 @@ import BaseLayout from '~/layouts/BaseLayout.astro';
 import Icon from '~/components/Icon.astro';
 import Photo from '~/components/Photo.astro';
 import PageHero from '~/components/PageHero.astro';
+import PageNav from '~/components/PageNav.astro';
 import { themes } from '~/data/programmes';
 import { formatDigits, localizePath, tr, useTranslations, type Lang } from '~/i18n/utils';
 
@@ -12,22 +13,8 @@ const t = useTranslations(lang);
 ---
 
 <BaseLayout title={t('programmes.title')} description={t('programmes.lead')}>
-  <PageHero eyebrow={t('nav.programmes')} title={t('programmes.title')} lead={t('programmes.lead')}>
-    <nav class="jump" aria-label={t('programmes.jump')}>
-      <ul class="chip-list">
-        {
-          themes.map((theme) => (
-            <li>
-              <a class="chip" href={`#${theme.id}`}>
-                <Icon name={theme.icon} size={16} />
-                {tr(theme.title, lang)}
-              </a>
-            </li>
-          ))
-        }
-      </ul>
-    </nav>
-  </PageHero>
+  <PageHero eyebrow={t('nav.programmes')} title={t('programmes.title')} lead={t('programmes.lead')} />
+  <PageNav label={t('programmes.jump')} items={themes.map((theme) => ({ id: theme.id, label: tr(theme.title, lang) }))} />
 
   {
     themes.map((theme, i) => (
@@ -74,7 +61,7 @@ const t = useTranslations(lang);
       <h2>{t('home.cta.title')}</h2>
       <p class="lead">{t('home.cta.text')}</p>
       <div class="btn-row">
-        <a class="btn btn-primary" href={localizePath('/contact/#get-involved', lang)}>{t('cta.workWithUs')} <Icon name="arrow-right" size={18} /></a>
+        <a class="btn btn-primary" href={localizePath('/contact/?type=programme#request', lang)}>{t('cta.workWithUs')} <Icon name="arrow-right" size={18} /></a>
         <a class="btn btn-outline" href={localizePath('/activities/', lang)}>{t('cta.allActivities')}</a>
       </div>
     </div>
@@ -82,21 +69,6 @@ const t = useTranslations(lang);
 </BaseLayout>
 
 <style>
-  .jump {
-    margin-top: 0.5rem;
-  }
-
-  .jump .chip {
-    padding: 0.4rem 0.9rem;
-    text-decoration: none;
-    font-size: 0.95rem;
-    background: #fff;
-  }
-
-  .jump .chip:hover {
-    border-color: var(--green);
-  }
-
   .theme-head {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -138,7 +110,6 @@ const t = useTranslations(lang);
     display: grid;
     gap: 0.8rem;
     align-content: start;
-    scroll-margin-top: calc(var(--header-h) + 1rem);
   }
 
   .programme p {
