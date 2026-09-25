@@ -1,220 +1,281 @@
 {
  "river-cleanup": {
   "widths": [
-   720,
-   1400
+   480,
+   960
   ],
   "width": 960,
-  "height": 540
+  "height": 540,
+  "color": "#66656b",
+  "focus": "72% 59%"
  },
  "river-cleanup-banner": {
   "widths": [
-   720,
-   1400
+   480,
+   960
   ],
   "width": 960,
-  "height": 528
+  "height": 528,
+  "color": "#817e83",
+  "focus": "69% 70%"
  },
  "river-cleanup-walk": {
   "widths": [
-   720,
-   1400
+   480,
+   960
   ],
   "width": 960,
-  "height": 528
+  "height": 528,
+  "color": "#7c7a74",
+  "focus": "28% 44%"
  },
  "river-cleanup-crowd": {
   "widths": [
-   720,
-   1400
+   480,
+   960
   ],
   "width": 960,
-  "height": 720
+  "height": 720,
+  "color": "#86878a",
+  "focus": "38% 50%"
  },
  "environment-day-2012": {
   "widths": [
-   720,
-   1400
+   480,
+   960,
+   1400,
+   2048
   ],
-  "width": 1400,
-  "height": 1050
+  "width": 2048,
+  "height": 1536,
+  "color": "#686760",
+  "focus": "63% 53%"
  },
  "environment-day-2012-group": {
   "widths": [
-   720,
-   1400
+   480,
+   960,
+   1400,
+   2048
   ],
-  "width": 1400,
-  "height": 1050
+  "width": 2048,
+  "height": 1536,
+  "color": "#7b6e5f",
+  "focus": "63% 22%"
  },
  "community-cleanup": {
   "widths": [
-   720,
-   1400
+   480,
+   960,
+   1400,
+   2048
   ],
-  "width": 1400,
-  "height": 787
+  "width": 2048,
+  "height": 1151,
+  "color": "#81807a",
+  "focus": "34% 30%"
  },
  "kmc-ward16-campaign": {
   "widths": [
-   720,
-   1400
+   480,
+   960,
+   1400,
+   2000
   ],
-  "width": 1400,
-  "height": 1050
+  "width": 2000,
+  "height": 1500,
+  "color": "#70665e",
+  "focus": "63% 47%"
  },
  "segregation-buckets": {
   "widths": [
-   720,
-   1400
+   480,
+   960,
+   1400,
+   1766
   ],
-  "width": 1400,
-  "height": 849
+  "width": 1766,
+  "height": 1071,
+  "color": "#7f7774",
+  "focus": "56% 27%"
  },
  "segregation-pair": {
   "widths": [
-   720
+   480,
+   640
   ],
   "width": 640,
-  "height": 480
+  "height": 442,
+  "color": "#77924d",
+  "focus": "35% 72%"
  },
  "bucket-handover": {
   "widths": [
-   720
+   449
   ],
   "width": 449,
-  "height": 337
+  "height": 310,
+  "color": "#7f705c",
+  "focus": "35% 34%"
  },
  "bucket-stock": {
   "widths": [
-   720
+   480,
+   640
   ],
   "width": 640,
-  "height": 480
+  "height": 446,
+  "color": "#867c60",
+  "focus": "65% 34%"
  },
  "zoo-compost": {
   "widths": [
-   720,
-   1400
+   480,
+   960
   ],
   "width": 960,
-  "height": 638
+  "height": 638,
+  "color": "#b0d0da",
+  "focus": "47% 75%"
  },
  "handigaun-compost": {
   "widths": [
-   720,
-   1400
+   480,
+   960
   ],
   "width": 960,
-  "height": 638
+  "height": 638,
+  "color": "#77a5b7",
+  "focus": "33% 28%"
  },
  "compost-shed": {
   "widths": [
-   720,
-   1400
+   480,
+   960
   ],
   "width": 960,
-  "height": 638
+  "height": 638,
+  "color": "#5e838b",
+  "focus": "67% 25%"
  },
  "nursery": {
   "widths": [
-   720,
-   1400
+   480,
+   960
   ],
   "width": 960,
-  "height": 638
+  "height": 638,
+  "color": "#506c39",
+  "focus": "34% 44%"
  },
  "organic-farm": {
   "widths": [
-   720,
-   1400
+   480,
+   960
   ],
   "width": 960,
-  "height": 720
+  "height": 720,
+  "color": "#6f7b67",
+  "focus": "63% 22%"
  },
  "students-compost": {
   "widths": [
-   720,
-   1400
+   480,
+   960
   ],
   "width": 960,
-  "height": 720
+  "height": 720,
+  "color": "#78716d",
+  "focus": "38% 47%"
  },
  "students-visit": {
   "widths": [
-   720,
-   1400
+   480,
+   960
   ],
   "width": 960,
-  "height": 720
+  "height": 720,
+  "color": "#6d6860",
+  "focus": "41% 44%"
  },
  "awareness-cart": {
   "widths": [
-   720,
-   1400
+   480,
+   960
   ],
   "width": 960,
-  "height": 640
+  "height": 589,
+  "color": "#837761",
+  "focus": "31% 73%"
  },
  "roadside-clearing": {
   "widths": [
-   720,
-   1400
+   480,
+   960
   ],
   "width": 960,
-  "height": 540
- },
- "chakrapath-2018-team": {
-  "widths": [
-   720,
-   1400
-  ],
-  "width": 960,
-  "height": 720
+  "height": 540,
+  "color": "#8b7d6f",
+  "focus": "28% 30%"
  },
  "roadside-clearing-machine": {
   "widths": [
-   720,
-   1400
+   480,
+   960
   ],
   "width": 960,
-  "height": 540
+  "height": 540,
+  "color": "#7a7e7f",
+  "focus": "66% 30%"
+ },
+ "chakrapath-2018-team": {
+  "widths": [
+   480,
+   960
+  ],
+  "width": 960,
+  "height": 720,
+  "color": "#655e54",
+  "focus": "38% 22%"
  },
  "german-embassy-visit": {
   "widths": [
-   720,
+   480,
+   960,
    1400
   ],
   "width": 1400,
-  "height": 1050
+  "height": 1050,
+  "color": "#6f6966",
+  "focus": "56% 35%"
  },
  "training-certificates": {
   "widths": [
-   720,
-   1400
+   480,
+   960
   ],
   "width": 960,
-  "height": 720
+  "height": 720,
+  "color": "#796961",
+  "focus": "63% 72%"
  },
  "street-awareness": {
   "widths": [
-   720
+   480,
+   640
   ],
   "width": 640,
-  "height": 480
+  "height": 437,
+  "color": "#7c6d59",
+  "focus": "59% 47%"
  },
  "publications": {
   "widths": [
-   720
+   400
   ],
   "width": 400,
-  "height": 300
- },
- "vermi-box": {
-  "widths": [
-   720
-  ],
-  "width": 250,
-  "height": 188
+  "height": 300,
+  "color": "#6383a5",
+  "focus": "50% 41%"
  }
 }

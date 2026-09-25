@@ -1,85 +1,127 @@
 ---
-// Photo thumbnails that open in the shared Lightbox.
+// Photo mosaic that opens in the shared Lightbox. Always the same 3:2 shape:
+// 1 photo fills it; 2 photos = large + side; 3+ = large + two stacked, the last one showing "+N" for the rest.
 import Photo from './Photo.astro';
 import Icon from './Icon.astro';
-import photoSizes from '~/data/photo-sizes.json';
+import { largestPhoto } from '~/lib/photos';
+import { fill } from '~/i18n/ui';
+import { formatDigits, useTranslations, type Lang } from '~/i18n/utils';
 
-type Props = { group: string; photos: { slug: string; alt: string }[]; enlargeLabel: string };
-const { group, photos, enlargeLabel } = Astro.props;
-const largest = (slug: string) => {
-  const info = (photoSizes as Record<string, { widths: number[] }>)[slug];
-  return `/images/photos/${slug}-${info.widths.at(-1)}.webp`;
-};
+type Props = { group: string; photos: { slug: string; alt: string }[]; lang: Lang };
+const { group, photos, lang } = Astro.props;
+const t = useTranslations(lang);
+
+const shown = photos.slice(0, 3);
+const extra = photos.length - shown.length;
+const layout = `n-${shown.length}`;
+const count = photos.length === 1 ? t('gallery.one') : fill(t('gallery.count'), { n: formatDigits(photos.length, lang) });
 ---
 
-<ul class:list={['gallery', `n-${Math.min(photos.length, 4)}`]}>
-  {
-    photos.map((p) => (
-      <li>
-        <a href={largest(p.slug)} data-lightbox={group} data-caption={p.alt} aria-label={`${enlargeLabel}: ${p.alt}`}>
-          <Photo slug={p.slug} alt={p.alt} sizes="(min-width: 900px) 360px, 50vw" />
-          <span class="zoom" aria-hidden="true">
-            <Icon name="camera" size={16} />
-          </span>
+<figure class="gallery">
+  <div class:list={['mosaic', layout]}>
+    {
+      shown.map((p, i) => (
+        <a
+          class="photo tile"
+          href={largestPhoto(p.slug)}
+          data-lightbox={group}
+          data-caption={p.alt}
+          aria-label={`${t('common.enlarge')}: ${p.alt}`}
+        >
+          <Photo slug={p.slug} alt={p.alt} sizes={i === 0 ? '(min-width: 900px) 420px, 66vw' : '(min-width: 900px) 220px, 33vw'} />
+          {i === shown.length - 1 && extra > 0 && (
+            <span class="more" aria-hidden="true">
+              +{formatDigits(extra, lang)}
+            </span>
+          )}
         </a>
-      </li>
+      ))
+    }
+  </div>
+  {
+    // The remaining photos are still in the viewer's set, just not shown as tiles.
+    photos.slice(3).map((p) => (
+      <a href={largestPhoto(p.slug)} data-lightbox={group} data-caption={p.alt} hidden>
+        {p.alt}
+      </a>
     ))
   }
-</ul>
+  <figcaption>
+    <Icon name="camera" size={16} />
+    <span>{count}</span>
+  </figcaption>
+</figure>
 
 <style>
   .gallery {
-    list-style: none;
+    margin: 0;
     display: grid;
     gap: 0.5rem;
-    grid-template-columns: repeat(auto-fill, minmax(min(46%, 180px), 1fr));
   }
 
-  .gallery.n-1 {
-    grid-template-columns: 1fr;
+  .mosaic {
+    display: grid;
+    gap: 6px;
+    aspect-ratio: 3 / 2;
   }
 
-  a {
-    position: relative;
+  .n-2 {
+    grid-template-columns: 2fr 1fr;
+  }
+
+  .n-3 {
+    grid-template-columns: 2fr 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+
+  .n-3 .tile:first-child {
+    grid-row: span 2;
+  }
+
+  .tile {
     display: block;
-    overflow: hidden;
-    aspect-ratio: 4 / 3;
+    border-radius: 8px;
+  }
+
+  .n-1 .tile {
     border-radius: var(--radius-sm);
-    background: var(--green-100);
   }
 
-  .n-1 a {
-    aspect-ratio: 16 / 9;
+  .tile :global(img) {
+    transition: scale 0.6s var(--ease), filter 0.3s var(--ease);
   }
 
-  a :global(img) {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: scale 0.5s var(--ease);
-  }
-
-  a:hover :global(img) {
+  .tile:hover :global(img) {
     scale: 1.04;
   }
 
-  .zoom {
+  .more {
     position: absolute;
-    right: 0.5rem;
-    bottom: 0.5rem;
+    inset: 0;
+    z-index: 1;
     display: grid;
     place-items: center;
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background: rgb(0 0 0 / 0.45);
+    background: rgb(14 38 8 / 0.55);
     color: #fff;
-    opacity: 0;
-    transition: opacity 0.2s var(--ease);
+    font-family: var(--font-head);
+    font-size: clamp(1.1rem, 2.5vw, 1.6rem);
+    font-weight: 700;
+    transition: background-color 0.2s var(--ease);
   }
 
-  a:hover .zoom,
-  a:focus-visible .zoom {
-    opacity: 1;
+  .tile:hover .more {
+    background: rgb(14 38 8 / 0.7);
+  }
+
+  figcaption {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--muted);
+    font-size: 0.88rem;
+  }
+
+  figcaption :global(.icon) {
+    color: var(--green-600);
   }
 </style>

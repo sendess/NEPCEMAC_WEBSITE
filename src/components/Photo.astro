@@ -1,5 +1,5 @@
 ---
-import photoSizes from '~/data/photo-sizes.json';
+import { photoInfo, photoUrl } from '~/lib/photos';
 
 type Props = {
   slug: string;
@@ -9,26 +9,28 @@ type Props = {
   class?: string;
   loading?: 'lazy' | 'eager';
   priority?: boolean;
+  /** Override the stored focal point, e.g. "50% 20%". */
+  position?: string;
 };
 
-type Info = { widths: number[]; width: number; height: number };
-const { slug, alt, sizes = '(min-width: 1200px) 600px, 100vw', class: className, loading = 'lazy', priority = false } = Astro.props;
-const info = (photoSizes as Record<string, Info>)[slug];
-if (!info) throw new Error(`Unknown photo "${slug}" — add it to src/data/photo-sizes.json`);
-
-// The small file is 720px wide unless the original was narrower; the large one is the full stored width.
-const small = Math.min(720, info.width);
-const srcset = info.widths.map((w, i) => `/images/photos/${slug}-${w}.webp ${i === info.widths.length - 1 ? info.width : small}w`).join(', ');
+const { slug, alt, sizes = '(min-width: 1200px) 600px, 100vw', class: className, loading = 'lazy', priority = false, position } = Astro.props;
+const info = photoInfo(slug);
+const srcset = info.widths.map((w) => `${photoUrl(slug, w)} ${w}w`).join(', ');
+// Fallback for browsers without srcset: a mid-size copy.
+const fallback = info.widths.find((w) => w >= 900) ?? info.widths.at(-1)!;
+// The average colour shows while the photo loads; the focal point keeps faces and banners in frame when cropped.
+const style = `background-color:${info.color};object-position:${position ?? info.focus}`;
 ---
 
 <img
-  src={`/images/photos/${slug}-720.webp`}
+  src={photoUrl(slug, fallback)}
   srcset={srcset}
   sizes={sizes}
   width={info.width}
   height={info.height}
   alt={alt}
   class={className}
+  style={style}
   loading={priority ? 'eager' : loading}
   decoding="async"
   fetchpriority={priority ? 'high' : undefined}

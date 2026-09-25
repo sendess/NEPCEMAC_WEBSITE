@@ -9,7 +9,10 @@ const t = useTranslations(Astro.props.lang);
 
 <dialog class="lightbox" data-lightbox-dialog data-label-of={t('common.photoOf')} aria-label={t('common.photos')}>
   <figure>
-    <img alt="" data-lightbox-img />
+    <div class="stage">
+      <img alt="" data-lightbox-img />
+      <span class="spinner" data-lightbox-spinner role="status" aria-label={t('common.loading')}><Icon name="loader-circle" size={34} /></span>
+    </div>
     <figcaption data-lightbox-caption></figcaption>
   </figure>
   <p class="count" data-lightbox-count aria-live="polite"></p>
@@ -22,24 +25,40 @@ const t = useTranslations(Astro.props.lang);
   const dialog = document.querySelector<HTMLDialogElement>('[data-lightbox-dialog]');
   if (dialog) {
     const img = dialog.querySelector<HTMLImageElement>('[data-lightbox-img]')!;
+    const spinner = dialog.querySelector<HTMLElement>('[data-lightbox-spinner]')!;
     const caption = dialog.querySelector<HTMLElement>('[data-lightbox-caption]')!;
     const count = dialog.querySelector<HTMLElement>('[data-lightbox-count]')!;
     const prev = dialog.querySelector<HTMLButtonElement>('[data-lightbox-prev]')!;
     const next = dialog.querySelector<HTMLButtonElement>('[data-lightbox-next]')!;
     const labelOf = dialog.dataset.labelOf ?? '{n} / {total}';
+    const nepali = document.documentElement.lang === 'ne';
+    const digits = (n: number) => (nepali ? String(n).replace(/\d/g, (d) => '०१२३४५६७८९'[Number(d)]) : String(n));
     let items: HTMLAnchorElement[] = [];
     let index = 0;
     let opener: HTMLElement | null = null;
+
+    // Warm the cache for the neighbouring photos so paging feels instant.
+    const preload = (i: number) => {
+      const link = items[(i + items.length) % items.length];
+      if (link) new Image().src = link.href;
+    };
 
     const show = (i: number) => {
       index = (i + items.length) % items.length;
       const link = items[index];
       const thumb = link.querySelector('img');
+      dialog.classList.add('is-loading');
+      img.onload = img.onerror = () => dialog.classList.remove('is-loading');
       img.src = link.href;
-      img.alt = thumb?.alt ?? '';
+      img.alt = thumb?.alt ?? link.dataset.caption ?? '';
+      if (img.complete) dialog.classList.remove('is-loading');
       caption.textContent = link.dataset.caption ?? thumb?.alt ?? '';
-      count.textContent = items.length > 1 ? labelOf.replace('{n}', String(index + 1)).replace('{total}', String(items.length)) : '';
+      count.textContent = items.length > 1 ? labelOf.replace('{n}', digits(index + 1)).replace('{total}', digits(items.length)) : '';
       prev.hidden = next.hidden = items.length < 2;
+      if (items.length > 1) {
+        preload(index + 1);
+        preload(index - 1);
+      }
     };
 
     const close = () => {
@@ -53,7 +72,7 @@ const t = useTranslations(Astro.props.lang);
       if (!link || e.metaKey || e.ctrlKey || e.shiftKey) return;
       e.preventDefault();
       opener = link;
-      items = [...document.querySelectorAll<HTMLAnchorElement>(`a[data-lightbox="${link.dataset.lightbox}"]`)];
+      items = [...document.querySelectorAll<HTMLAnchorElement>(`a[data-lightbox="${CSS.escape(link.dataset.lightbox!)}"]`)];
       show(items.indexOf(link));
       dialog.showModal();
     });
@@ -69,6 +88,20 @@ const t = useTranslations(Astro.props.lang);
         close();
       }
     });
+
+    // Swipe left/right on touch screens.
+    let startX = 0;
+    let startY = 0;
+    dialog.addEventListener('pointerdown', (e) => {
+      startX = e.clientX;
+      startY = e.clientY;
+    });
+    dialog.addEventListener('pointerup', (e) => {
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      if (items.length > 1 && Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) show(index + (dx < 0 ? 1 : -1));
+    });
+
     // Clicking the dark area around the photo closes the viewer.
     dialog.addEventListener('click', (e) => e.target === dialog && close());
   }
@@ -83,13 +116,15 @@ const t = useTranslations(Astro.props.lang);
     margin: 0;
     padding: clamp(3.5rem, 6vw, 4.5rem) clamp(0.75rem, 6vw, 5rem) 2.5rem;
     border: 0;
-    background: rgb(8 18 6 / 0.94);
+    background: rgb(8 18 6 / 0.95);
     color: #fff;
+    touch-action: pan-y;
   }
 
   .lightbox[open] {
     display: grid;
     place-items: center;
+    animation: fade-in 0.2s var(--ease);
   }
 
   .lightbox::backdrop {
@@ -99,30 +134,63 @@ const t = useTranslations(Astro.props.lang);
   figure {
     margin: 0;
     display: grid;
-    gap: 0.75rem;
+    gap: 0.9rem;
     justify-items: center;
     max-height: 100%;
+  }
+
+  .stage {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-width: min(60vw, 320px);
+    min-height: 200px;
   }
 
   img {
     max-width: 100%;
     max-height: calc(100dvh - 10rem);
     width: auto;
-    border-radius: 8px;
+    border-radius: 10px;
+    box-shadow: 0 30px 80px -20px rgb(0 0 0 / 0.7);
+    transition: opacity 0.25s var(--ease);
+  }
+
+  .is-loading img {
+    opacity: 0.25;
+  }
+
+  .spinner {
+    position: absolute;
+    display: none;
+    color: #cfe3c6;
+  }
+
+  .is-loading .spinner {
+    display: block;
+    animation: spin 0.9s linear infinite;
   }
 
   figcaption {
     max-width: 70ch;
     text-align: center;
     color: #dfe7db;
+    line-height: 1.5;
   }
 
   .count {
     position: absolute;
     top: 1.25rem;
     left: 1.25rem;
-    color: #b8c6b3;
+    padding: 0.2rem 0.7rem;
+    border-radius: 999px;
+    background: rgb(255 255 255 / 0.1);
+    color: #dfe7db;
     font-size: 0.9rem;
+  }
+
+  .count:empty {
+    display: none;
   }
 
   button {
@@ -133,12 +201,12 @@ const t = useTranslations(Astro.props.lang);
     height: 48px;
     border-radius: 50%;
     border: 1px solid rgb(255 255 255 / 0.25);
-    background: rgb(255 255 255 / 0.06);
+    background: rgb(255 255 255 / 0.08);
     color: #fff;
   }
 
   button:hover {
-    background: rgb(255 255 255 / 0.16);
+    background: rgb(255 255 255 / 0.18);
   }
 
   .close {
@@ -157,5 +225,25 @@ const t = useTranslations(Astro.props.lang);
 
   .next {
     right: clamp(0.5rem, 2vw, 1.5rem);
+  }
+
+  @media (max-width: 640px) {
+    .nav {
+      top: auto;
+      bottom: 1rem;
+      translate: none;
+    }
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes spin {
+    to {
+      rotate: 360deg;
+    }
   }
 </style>

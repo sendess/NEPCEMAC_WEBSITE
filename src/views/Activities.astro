@@ -115,7 +115,7 @@ const kinds = (Object.keys(kindIcon) as Activity['kind'][])
                       </div>
                       {a.photos.length > 0 && (
                         <div class="entry-photos">
-                          <Gallery group={a.id} photos={a.photos.map((slug) => ({ slug, alt: caption(slug, lang) }))} enlargeLabel={t('common.enlarge')} />
+                          <Gallery group={a.id} photos={a.photos.map((slug) => ({ slug, alt: caption(slug, lang) }))} lang={lang} />
                           {a.photoNote && <p class="small muted note">{tr(a.photoNote, lang)}</p>}
                         </div>
                       )}
@@ -137,7 +137,7 @@ const kinds = (Object.keys(kindIcon) as Activity['kind'][])
         {
           undated.map((a) => (
             <li class="card archive-card" id={a.id} data-kind={a.kind}>
-              <Gallery group={a.id} photos={a.photos.map((slug) => ({ slug, alt: caption(slug, lang) }))} enlargeLabel={t('common.enlarge')} />
+              <Gallery group={a.id} photos={a.photos.map((slug) => ({ slug, alt: caption(slug, lang) }))} lang={lang} />
               <div class="archive-text">
                 <h3>{tr(a.title, lang)}</h3>
                 {a.text.map((p) => (
@@ -336,6 +336,7 @@ const kinds = (Object.keys(kindIcon) as Activity['kind'][])
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
     gap: 1.25rem;
+    align-items: start;
   }
 
   .archive-card {

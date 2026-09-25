@@ -30,7 +30,6 @@ export const photoCaptions: Record<string, L> = {
   'training-certificates': { en: 'Participants receiving certificates at a NEPCEMAC training', ne: 'नेप्सेम्याक तालिममा प्रमाणपत्र लिँदै सहभागी' },
   'street-awareness': { en: 'A street awareness rally with brooms and placards', ne: 'कुचो र प्लेकार्डसहित सडक जनचेतना र्‍याली' },
   publications: { en: 'NEPCEMAC leaflets, booklets and the NEPCEMAC Sandesh newsletter', ne: 'नेप्सेम्याकका पर्चा, पुस्तिका र नेप्सेम्याक सन्देश' },
-  'vermi-box': { en: 'A wooden vermicompost box made by NEPCEMAC', ne: 'नेप्सेम्याकले बनाएको काठको गँड्यौले मल बाकस' },
 };
 
 export function caption(slug: string, lang: Lang): string {

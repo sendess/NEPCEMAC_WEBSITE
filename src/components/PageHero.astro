@@ -1,5 +1,5 @@
 ---
-import Photo from './Photo.astro';
+import Figure from './Figure.astro';
 
 type Props = {
   eyebrow?: string;
@@ -21,9 +21,7 @@ const { eyebrow, title, lead, photo, photoAlt = '' } = Astro.props;
     </div>
     {
       photo && (
-        <div class="photo hero-photo">
-          <Photo slug={photo} alt={photoAlt} priority sizes="(min-width: 900px) 480px, 100vw" />
-        </div>
+        <Figure class="hero-photo" slug={photo} alt={photoAlt} caption ratio="4 / 3" priority sizes="(min-width: 900px) 480px, 100vw" />
       )
     }
   </div>
@@ -61,19 +59,16 @@ const { eyebrow, title, lead, photo, photoAlt = '' } = Astro.props;
     font-size: var(--step-4);
   }
 
-  .hero-photo {
-    aspect-ratio: 4 / 3;
+  .inner :global(.hero-photo .frame) {
     box-shadow: var(--shadow-lg);
-    rotate: 1.2deg;
   }
 
   @media (max-width: 860px) {
     .has-photo .inner {
       grid-template-columns: 1fr;
     }
-    .hero-photo {
-      rotate: none;
-      max-height: 280px;
+    .inner :global(.hero-photo .frame) {
+      aspect-ratio: 16 / 9 !important;
     }
   }
 </style>

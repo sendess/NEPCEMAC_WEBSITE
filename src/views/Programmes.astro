@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '~/layouts/BaseLayout.astro';
 import Icon from '~/components/Icon.astro';
-import Photo from '~/components/Photo.astro';
+import Figure from '~/components/Figure.astro';
 import PageHero from '~/components/PageHero.astro';
 import PageNav from '~/components/PageNav.astro';
 import { themes } from '~/data/programmes';
@@ -28,9 +28,7 @@ const t = useTranslations(lang);
               <h2 id={`${theme.id}-title`}>{tr(theme.title, lang)}</h2>
               <p class="lead">{tr(theme.summary, lang)}</p>
             </div>
-            <div class="photo theme-photo">
-              <Photo slug={theme.photo} alt={tr(theme.photoAlt, lang)} sizes="(min-width: 1000px) 520px, 100vw" />
-            </div>
+            <Figure class="theme-photo" slug={theme.photo} alt={tr(theme.photoAlt, lang)} caption ratio="16 / 10" sizes="(min-width: 1000px) 560px, 100vw" />
           </div>
 
           <ul class:list={['programmes', theme.programmes.length === 1 && 'is-single']}>
@@ -90,8 +88,7 @@ const t = useTranslations(lang);
     font-size: var(--step-3);
   }
 
-  .theme-photo {
-    aspect-ratio: 16 / 10;
+  .theme-head :global(.theme-photo .frame) {
     box-shadow: var(--shadow);
   }
 

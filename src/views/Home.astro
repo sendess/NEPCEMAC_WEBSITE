@@ -2,6 +2,7 @@
 import BaseLayout from '~/layouts/BaseLayout.astro';
 import Icon from '~/components/Icon.astro';
 import Photo from '~/components/Photo.astro';
+import Figure from '~/components/Figure.astro';
 import SectionHead from '~/components/SectionHead.astro';
 import YouTube from '~/components/YouTube.astro';
 import { org } from '~/data/site';
@@ -155,9 +156,7 @@ const highlights = [
           </p>
         </form>
       </div>
-      <div class="photo sort-photo">
-        <Photo slug="bucket-stock" alt={caption('bucket-stock', lang)} sizes="(min-width: 1000px) 520px, 100vw" />
-      </div>
+      <Figure class="sort-photo" slug="bucket-stock" alt={caption('bucket-stock', lang)} caption ratio="1" sizes="(min-width: 1000px) 520px, 100vw" />
     </div>
   </section>
 
@@ -594,8 +593,7 @@ const highlights = [
     color: #fff;
   }
 
-  .sort-photo {
-    aspect-ratio: 1;
+  .sort-grid :global(.sort-photo .frame) {
     box-shadow: var(--shadow-lg);
   }
 
@@ -818,8 +816,8 @@ const highlights = [
     .journey::before {
       display: none;
     }
-    .sort-photo {
-      aspect-ratio: 16 / 10;
+    .sort-grid :global(.sort-photo .frame) {
+      aspect-ratio: 16 / 10 !important;
     }
     .badge {
       left: 0.75rem;

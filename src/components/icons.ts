@@ -53,6 +53,8 @@ import CircleQuestionMarkIcon from '@lucide/astro/icons/circle-question-mark';
 import SendIcon from '@lucide/astro/icons/send';
 import ListFilterIcon from '@lucide/astro/icons/list-filter';
 import ArrowDownIcon from '@lucide/astro/icons/arrow-down';
+import ExpandIcon from '@lucide/astro/icons/expand';
+import LoaderCircleIcon from '@lucide/astro/icons/loader-circle';
 
 export const icons = {
   'arrow-right': ArrowRightIcon,
@@ -109,6 +111,8 @@ export const icons = {
   'send': SendIcon,
   'list-filter': ListFilterIcon,
   'arrow-down': ArrowDownIcon,
+  'expand': ExpandIcon,
+  'loader-circle': LoaderCircleIcon,
 } as const;
 
 export type IconName = keyof typeof icons;

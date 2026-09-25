@@ -529,9 +529,22 @@ a:hover {
 
 /* ---------- Photos ---------- */
 .photo {
+  position: relative;
   overflow: hidden;
   border-radius: var(--radius);
   background: var(--green-100);
+  isolation: isolate;
+}
+
+/* A hairline inside the frame keeps pale photos from melting into white backgrounds. */
+.photo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgb(20 36 23 / 0.08);
+  pointer-events: none;
 }
 
 .photo img {

@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '~/layouts/BaseLayout.astro';
 import Icon from '~/components/Icon.astro';
-import Photo from '~/components/Photo.astro';
+import Figure from '~/components/Figure.astro';
 import PageHero from '~/components/PageHero.astro';
 import PageNav from '~/components/PageNav.astro';
 import SortFinder from '~/components/SortFinder.astro';
@@ -99,8 +99,7 @@ const copyHref = (title: string) =>
           }
         </ul>
         <div class="pubs-side">
-          <div class="photo"><Photo slug="publications" alt={caption('publications', lang)} sizes="360px" /></div>
-          <div class="photo"><Photo slug="vermi-box" alt={caption('vermi-box', lang)} sizes="360px" /></div>
+          <Figure slug="publications" alt={caption('publications', lang)} caption ratio="4 / 3" sizes="300px" />
         </div>
       </div>
     </div>
@@ -232,8 +231,8 @@ const copyHref = (title: string) =>
     gap: 1rem;
   }
 
-  .pubs-side .photo {
-    aspect-ratio: 4 / 3;
+  .pubs-side {
+    max-width: 400px;
   }
 
   .research-grid {
@@ -304,9 +303,6 @@ const copyHref = (title: string) =>
     .pubs-grid,
     .research-grid {
       grid-template-columns: 1fr;
-    }
-    .pubs-side {
-      grid-template-columns: 1fr 1fr;
     }
   }
 

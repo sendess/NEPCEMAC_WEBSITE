@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '~/layouts/BaseLayout.astro';
 import Icon from '~/components/Icon.astro';
-import Photo from '~/components/Photo.astro';
+import Figure from '~/components/Figure.astro';
 import PageHero from '~/components/PageHero.astro';
 import PageNav from '~/components/PageNav.astro';
 import SectionHead from '~/components/SectionHead.astro';
@@ -43,8 +43,8 @@ const legalRows = [
         {intro.map((p, i) => <p class:list={[i === 0 && 'first']}>{tr(p, lang)}</p>)}
       </div>
       <div class="intro-photos">
-        <div class="photo"><Photo slug="street-awareness" alt={caption('street-awareness', lang)} sizes="(min-width: 1000px) 420px, 100vw" /></div>
-        <div class="photo"><Photo slug="training-certificates" alt={caption('training-certificates', lang)} sizes="(min-width: 1000px) 420px, 100vw" /></div>
+        <Figure slug="street-awareness" alt={caption('street-awareness', lang)} caption ratio="3 / 2" group="about-story" sizes="(min-width: 1000px) 420px, 100vw" />
+        <Figure slug="training-certificates" alt={caption('training-certificates', lang)} caption ratio="3 / 2" group="about-story" sizes="(min-width: 1000px) 420px, 100vw" />
       </div>
     </div>
   </section>
@@ -107,9 +107,7 @@ const legalRows = [
                   <p>{tr(m.text, lang)}</p>
                 </div>
                 {m.photo && (
-                  <div class="photo tl-photo">
-                    <Photo slug={m.photo} alt={caption(m.photo, lang)} sizes="(min-width: 900px) 260px, 100vw" />
-                  </div>
+                  <Figure class="tl-photo" slug={m.photo} alt={caption(m.photo, lang)} group="timeline" sizes="(min-width: 900px) 260px, 100vw" />
                 )}
               </div>
             </li>
@@ -230,19 +228,7 @@ const legalRows = [
 
   .intro-photos {
     display: grid;
-    gap: 1rem;
-  }
-
-  .intro-photos .photo {
-    aspect-ratio: 4 / 3;
-  }
-
-  .intro-photos .photo:nth-child(2) {
-    width: 82%;
-    justify-self: end;
-    margin-top: -3rem;
-    border: 6px solid #fff;
-    box-shadow: var(--shadow);
+    gap: 1.5rem;
   }
 
   .vmg {
@@ -388,9 +374,12 @@ const legalRows = [
     color: var(--muted);
   }
 
-  .tl-photo {
-    border-radius: 0;
+  .tl-card :global(.tl-photo) {
     height: 100%;
+  }
+
+  .tl-card :global(.tl-photo .frame) {
+    border-radius: 0;
     min-height: 150px;
   }
 
@@ -600,11 +589,6 @@ const legalRows = [
     .intro-photos {
       grid-template-columns: 1fr 1fr;
     }
-    .intro-photos .photo:nth-child(2) {
-      width: auto;
-      margin-top: 0;
-      border: 0;
-    }
   }
 
   @media (max-width: 640px) {
@@ -630,7 +614,7 @@ const legalRows = [
     .has-photo .tl-card {
       grid-template-columns: 1fr;
     }
-    .tl-photo {
+    .tl-card :global(.tl-photo .frame) {
       aspect-ratio: 16 / 9;
       min-height: 0;
     }
