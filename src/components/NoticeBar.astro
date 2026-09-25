@@ -1,0 +1,125 @@
+---
+// Notices from the admin panel, as a strip above the header on every page. Pages are built ahead of
+// time, so the browser hides a notice before its start date, after its end date, or once dismissed.
+import Icon from './Icon.astro';
+import { getNotices } from '~/lib/site-data';
+import { localizePath, tr, useTranslations, type Lang } from '~/i18n/utils';
+
+type Props = { lang: Lang };
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const notices = await getNotices();
+const href = (url: string) => (url.startsWith('/') ? localizePath(url, lang) : url);
+---
+
+{
+  notices.length > 0 && (
+    <div class="notices">
+      {notices.map((n) => (
+        <aside class="notice" data-notice={n.id} data-starts={n.startsOn} data-ends={n.endsOn} aria-label={t('notice.label')}>
+          <div class="container inner">
+            <Icon name="megaphone" size={18} />
+            <p>
+              <strong>{tr(n.title, lang)}</strong>
+              {n.body[lang] && <span> {tr(n.body, lang)}</span>}
+              {n.link && (
+                <>
+                  {' '}
+                  <a href={href(n.link.url)} {...(n.link.url.startsWith('/') ? {} : { target: '_blank', rel: 'noopener' })}>
+                    {tr(n.link.label, lang)} →
+                  </a>
+                </>
+              )}
+            </p>
+            <button type="button" class="close" data-dismiss aria-label={t('notice.dismiss')}>
+              <Icon name="x" size={18} />
+            </button>
+          </div>
+        </aside>
+      ))}
+      <script is:inline>
+        (() => {
+          const KEY = 'nc-dismissed-notices';
+          const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kathmandu' }).format(new Date());
+          let dismissed = [];
+          try {
+            dismissed = JSON.parse(localStorage.getItem(KEY) || '[]');
+          } catch {}
+          document.querySelectorAll('[data-notice]').forEach((el) => {
+            const { notice, starts, ends } = el.dataset;
+            if ((starts && today < starts) || (ends && today > ends) || dismissed.includes(notice)) el.hidden = true;
+            el.querySelector('[data-dismiss]').addEventListener('click', () => {
+              el.hidden = true;
+              try {
+                localStorage.setItem(KEY, JSON.stringify([...dismissed, notice].slice(-20)));
+              } catch {}
+            });
+          });
+        })();
+      </script>
+    </div>
+  )
+}
+
+<style>
+  .notice {
+    background: var(--green-900);
+    color: #e6f2df;
+    font-size: 0.95rem;
+  }
+
+  .notice + .notice {
+    border-top: 1px solid rgb(255 255 255 / 0.12);
+  }
+
+  .inner {
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+    padding-block: 0.55rem;
+  }
+
+  .inner > :global(.icon) {
+    flex: none;
+    color: var(--green-300);
+  }
+
+  p {
+    flex: 1;
+    margin: 0;
+    line-height: 1.45;
+  }
+
+  strong {
+    color: #fff;
+  }
+
+  a {
+    color: #fff;
+    font-weight: 600;
+    text-underline-offset: 3px;
+  }
+
+  .close {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: #cfe3c6;
+  }
+
+  .close:hover {
+    background: rgb(255 255 255 / 0.1);
+    color: #fff;
+  }
+
+  @media print {
+    .notice {
+      display: none;
+    }
+  }
+</style>

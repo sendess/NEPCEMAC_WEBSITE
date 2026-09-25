@@ -1,0 +1,250 @@
+---
+import AdminLayout from '~/layouts/AdminLayout.astro';
+import Icon from '~/components/Icon.astro';
+import { sql } from '~/lib/db';
+import { describeAction } from '~/lib/audit';
+import { formatAgo, formatBytes } from '~/lib/admin-format';
+import { STORAGE_LIMIT_BYTES, storageUsed } from '~/lib/media';
+import { REQUEST_TYPES, type RequestType } from '~/lib/requests';
+
+export const prerender = false;
+
+const admin = Astro.locals.admin!;
+const [counts] = await sql`
+  select (select count(*) from requests where status = 'new')::int as new_requests,
+    (select count(*) from requests where status = 'in_progress')::int as open_requests,
+    (select count(*) from activities where visible)::int as activities,
+    (select count(*) from notices where visible and (ends_on is null or ends_on >= (now() at time zone 'Asia/Kathmandu')::date)
+       and (starts_on is null or starts_on <= (now() at time zone 'Asia/Kathmandu')::date))::int as notices,
+    (select count(*) from audit_log
+     where entity in ('activities', 'notices', 'team_members', 'site_settings')
+       and at > coalesce((select max(at) from site_publishes where ok), 'epoch'))::int as unpublished,
+    (select max(at) from site_publishes where ok) as last_publish`;
+const latest = await sql`
+  select id::text, ref, type, name, org, status, created_at from requests where status in ('new', 'in_progress')
+  order by created_at desc limit 5`;
+const changes = await sql`
+  select a.at, a.action, a.entity, a.label, coalesce(nullif(u.name, ''), a.actor_email) as who
+  from audit_log a left join admin_users u on u.email = a.actor_email
+  where a.entity in ('activities', 'notices', 'team_members', 'site_settings', 'site')
+  order by a.at desc limit 8`;
+
+const storage = await storageUsed();
+const storageShare = Math.round((storage.database / STORAGE_LIMIT_BYTES) * 100);
+
+const areas: Record<string, string> = {
+  activities: 'Activity',
+  notices: 'Notice',
+  team_members: 'Team',
+  site_settings: 'Settings',
+  site: 'Website',
+};
+const firstName = (admin.name || admin.email).split(/[\s@]/)[0];
+const flash = Astro.url.searchParams.has('denied') ? { text: 'Only the owner can open that page.', error: true } : null;
+---
+
+<AdminLayout title="Overview" flash={flash}>
+  <p class="lead-line">Namaste, {firstName}.</p>
+
+  <div class="cards">
+    <a class="stat" href="/admin/requests?status=new">
+      <Icon name="inbox" size={22} />
+      <strong>{counts.new_requests}</strong>
+      <span>new request{counts.new_requests === 1 ? '' : 's'}</span>
+      <small>{counts.open_requests} in progress</small>
+    </a>
+    <a class:list={['stat', { attention: counts.unpublished > 0 }]} href="/admin/publish">
+      <Icon name="rocket" size={22} />
+      <strong>{counts.unpublished}</strong>
+      <span>change{counts.unpublished === 1 ? '' : 's'} not yet on the website</span>
+      <small>{counts.last_publish ? `Last published ${formatAgo(counts.last_publish)}` : 'Not published from here yet'}</small>
+    </a>
+    <a class="stat" href="/admin/activities">
+      <Icon name="camera" size={22} />
+      <strong>{counts.activities}</strong>
+      <span>activities on the website</span>
+      <small>Add photos from a new campaign</small>
+    </a>
+    <a class="stat" href="/admin/notices">
+      <Icon name="megaphone" size={22} />
+      <strong>{counts.notices}</strong>
+      <span>notice{counts.notices === 1 ? '' : 's'} showing</span>
+      <small>Banner across the website</small>
+    </a>
+  </div>
+
+  <div class="two">
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Requests waiting</h2>
+        <a class="link-arrow" href="/admin/requests">All requests <Icon name="arrow-right" size={16} /></a>
+      </div>
+      {
+        latest.length ? (
+          <ul class="list">
+            {latest.map((r) => (
+              <li>
+                <a href={`/admin/requests/${r.id}`}>
+                  <strong>{r.name}</strong>
+                  {r.org && <span class="muted"> · {r.org}</span>}
+                </a>
+                <span class="sub">
+                  {REQUEST_TYPES[r.type as RequestType]} · {r.ref} · {formatAgo(r.created_at)}
+                  {r.status === 'new' && <span class="tag tag-amber">New</span>}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p class="hint">Nothing waiting. Requests sent with the form on the Contact page appear here.</p>
+        )
+      }
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Recent changes</h2>
+        {admin.role === 'owner' && <a class="link-arrow" href="/admin/log">Activity log <Icon name="arrow-right" size={16} /></a>}
+      </div>
+      {
+        changes.length ? (
+          <ul class="list">
+            {changes.map((c) => (
+              <li>
+                <span>
+                  <strong>{describeAction(c.action)}</strong> {areas[c.entity]?.toLowerCase()}: {c.label}
+                </span>
+                <span class="sub">
+                  {c.who ?? 'system'} · {formatAgo(c.at)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p class="hint">No changes yet.</p>
+        )
+      }
+    </section>
+  </div>
+
+  <section class="panel how">
+    <h2>How changes reach the website</h2>
+    <ol class="steps">
+      <li>Edit an activity, notice, team member or the contact details and press <strong>Save</strong>.</li>
+      <li>
+        When you are done, open <a href="/admin/publish">Publish</a> and press <strong>Publish now</strong>. The website is
+        rebuilt with your changes in about two minutes.
+      </li>
+      <li>Requests from the website arrive here straight away — no publishing needed.</li>
+    </ol>
+    <p class="hint">
+      Storage: {storage.photos} uploaded photo{storage.photos === 1 ? '' : 's'} ({formatBytes(storage.bytes)}); the database uses
+      {' '}{formatBytes(storage.database)} of about {formatBytes(STORAGE_LIMIT_BYTES)} ({storageShare}%).
+    </p>
+  </section>
+</AdminLayout>
+
+<style>
+  .lead-line {
+    margin: 0 0 1rem;
+    font-size: 1.1rem;
+    color: var(--muted);
+  }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .stat {
+    display: grid;
+    gap: 0.15rem;
+    padding: 1.1rem 1.2rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: #fff;
+    color: var(--ink);
+    text-decoration: none;
+    transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+  }
+
+  .stat:hover {
+    border-color: var(--green-300);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .stat :global(.icon) {
+    color: var(--green);
+  }
+
+  .stat strong {
+    font-family: var(--font-head);
+    font-size: 2rem;
+    line-height: 1.1;
+  }
+
+  .stat small {
+    color: var(--muted);
+  }
+
+  .stat.attention {
+    border-color: #f3dc98;
+    background: #fffbeb;
+  }
+
+  .two {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+    gap: 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .two .panel + .panel {
+    margin-top: 0;
+  }
+
+  .list {
+    display: grid;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .list li {
+    display: grid;
+    gap: 0.1rem;
+    padding: 0.6rem 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .list li:first-child {
+    border-top: 0;
+  }
+
+  .list a {
+    color: var(--ink);
+    text-decoration: none;
+  }
+
+  .list a:hover strong {
+    color: var(--green);
+    text-decoration: underline;
+  }
+
+  .sub {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: center;
+    font-size: 0.88rem;
+    color: var(--muted);
+  }
+
+  .how {
+    background: var(--green-50);
+    border-color: var(--green-100);
+  }
+</style>

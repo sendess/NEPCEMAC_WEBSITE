@@ -1,0 +1,158 @@
+---
+import AdminLayout from '~/layouts/AdminLayout.astro';
+import Icon from '~/components/Icon.astro';
+import BilingualField from '~/components/admin/BilingualField.astro';
+import PhotoList from '~/components/admin/PhotoList.astro';
+import { requestActor } from '~/lib/audit';
+import { doneMessage } from '~/lib/admin-format';
+import { ACTIVITY_KINDS, deleteActivity, emptyActivity, getActivity, saveActivity, type ActivityForm } from '~/lib/content';
+import type { FieldErrors } from '~/lib/forms';
+
+export const prerender = false;
+
+const isNew = Astro.params.id === 'new';
+const existing = isNew ? null : await getActivity(Astro.params.id ?? '');
+if (!isNew && !existing) return new Response(null, { status: 404 });
+
+let data: ActivityForm = existing ?? emptyActivity();
+let errors: FieldErrors = {};
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const actor = requestActor(Astro, Astro.locals.admin!.email);
+  if (form.get('_action') === 'delete' && existing) {
+    await deleteActivity(actor, existing.id);
+    return Astro.redirect('/admin/activities?done=deleted', 303);
+  }
+  const saved = await saveActivity(actor, existing?.id ?? null, form);
+  if (saved.ok) return Astro.redirect(`/admin/activities/${saved.id}?done=${isNew ? 'created' : 'saved'}`, 303);
+  data = saved.data;
+  errors = saved.errors;
+}
+
+const flash = Object.keys(errors).length
+  ? { text: 'Some fields need attention — see below.', error: true }
+  : doneMessage(Astro.url, {
+      created: 'Activity added. Publish when you are ready for it to appear on the website.',
+      saved: 'Saved. Publish when you are ready for the changes to appear on the website.',
+    });
+// Four rows for facts; empty ones are ignored.
+const facts = [...data.facts, ...Array(Math.max(0, 4 - data.facts.length)).fill({ label: { en: '', ne: '' }, value: { en: '', ne: '' } })];
+---
+
+<AdminLayout title={isNew ? 'Add activity' : data.title_en || data.title_ne || 'Activity'} flash={flash}>
+  <p class="back">
+    <a href="/admin/activities"><Icon name="chevron-left" size={16} /> All activities</a>
+    {existing && existing.visible && <a href={`/activities/#${existing.slug}`} target="_blank" rel="noopener">View on website <Icon name="external-link" size={14} /></a>}
+  </p>
+
+  <form method="post" class="stack" data-unsaved>
+    <section class="panel">
+      <h2>What happened</h2>
+      <div class="row-3">
+        <div class="field">
+          <label for="kind">Type</label>
+          <select id="kind" name="kind">
+            {Object.entries(ACTIVITY_KINDS).map(([k, label]) => <option value={k} selected={k === data.kind}>{label}</option>)}
+          </select>
+        </div>
+        <div class="field">
+          <label for="date">Date <span class="opt">(AD)</span></label>
+          <input id="date" name="date" type="date" value={data.date ?? ''} aria-invalid={errors.date ? 'true' : undefined} />
+          {errors.date && <p class="field-error">{errors.date}</p>}
+        </div>
+        <div class="field">
+          <label for="approx">Show on the website as</label>
+          <select id="approx" name="approx">
+            <option value="" selected={!data.approx}>The full date</option>
+            <option value="month" selected={data.approx === 'month'}>Month and year only</option>
+            <option value="year" selected={data.approx === 'year'}>Year only</option>
+          </select>
+        </div>
+      </div>
+      <p class="hint">Leave the date empty for old photos with no known date; they appear under “Photo archive”. Nepali pages show the date in BS automatically.</p>
+
+      <BilingualField name="title" label="Title" value={{ en: data.title_en, ne: data.title_ne }} required error={errors.title_en} />
+      <BilingualField
+        name="body"
+        label="What happened"
+        textarea
+        rows={7}
+        maxlength={6000}
+        value={{ en: data.body_en, ne: data.body_ne }}
+        hint="Leave a blank line between paragraphs."
+      />
+    </section>
+
+    <section class="panel">
+      <div>
+        <h2>Photos</h2>
+        <p class="hint">The first photo is the large one. Phone photos are made smaller before upload, so any size is fine.</p>
+      </div>
+      <PhotoList photos={data.photos} />
+      <BilingualField name="photo_note" label="Note under the photos" value={{ en: data.photo_note_en, ne: data.photo_note_ne }} maxlength={300} hint="For example: “Photos from other weeks of the same campaign.”" />
+    </section>
+
+    <section class="panel">
+      <div>
+        <h2>Key figures <span class="opt">(optional)</span></h2>
+        <p class="hint">Short facts shown as boxes, like “Participants — 150” or “Waste collected — 2 tonnes”.</p>
+      </div>
+      <div class="facts">
+        <span class="field-label">Label <span class="lang-tag">EN</span></span>
+        <span class="field-label">Label <span class="lang-tag">नेपाली</span></span>
+        <span class="field-label">Value <span class="lang-tag">EN</span></span>
+        <span class="field-label">Value <span class="lang-tag">नेपाली</span></span>
+        {
+          facts.map((f, i) => (
+            <>
+              <input name="fact_label_en" value={f.label.en} maxlength="80" aria-label={`Fact ${i + 1} label (English)`} />
+              <input name="fact_label_ne" value={f.label.ne} maxlength="80" lang="ne" aria-label={`Fact ${i + 1} label (Nepali)`} />
+              <input name="fact_value_en" value={f.value.en} maxlength="80" aria-label={`Fact ${i + 1} value (English)`} />
+              <input name="fact_value_ne" value={f.value.ne} maxlength="80" lang="ne" aria-label={`Fact ${i + 1} value (Nepali)`} />
+            </>
+          ))
+        }
+      </div>
+    </section>
+
+    <div class="actions-bar">
+      <label class="check-row">
+        <input type="checkbox" name="visible" checked={data.visible} />
+        Show on the website
+      </label>
+      <div class="btn-row">
+        {
+          existing && (
+            <button class="btn btn-danger btn-sm" type="submit" name="_action" value="delete" formnovalidate data-confirm="Delete this activity? This can’t be undone.">
+              <Icon name="trash" size={16} /> Delete
+            </button>
+          )
+        }
+        <button class="btn btn-primary" type="submit" name="_action" value="save">{isNew ? 'Add activity' : 'Save'}</button>
+      </div>
+    </div>
+  </form>
+</AdminLayout>
+
+<style>
+  .facts {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+
+  .facts .field-label {
+    font-size: 0.88rem;
+  }
+
+  @media (max-width: 700px) {
+    .facts {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .facts .field-label:nth-child(n + 3) {
+      display: none;
+    }
+  }
+</style>

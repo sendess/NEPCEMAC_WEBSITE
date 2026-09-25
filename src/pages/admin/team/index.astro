@@ -1,0 +1,132 @@
+---
+import AdminLayout from '~/layouts/AdminLayout.astro';
+import Icon from '~/components/Icon.astro';
+import { requestActor } from '~/lib/audit';
+import { doneMessage } from '~/lib/admin-format';
+import { isUuid, listTeam, moveTeamMember, TEAM_GROUPS, type TeamGroup } from '~/lib/content';
+import { thumbUrl } from '~/lib/photos';
+
+export const prerender = false;
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const id = String(form.get('id') ?? '');
+  const direction = form.get('move') === 'up' ? 'up' : 'down';
+  if (isUuid(id)) await moveTeamMember(requestActor(Astro, Astro.locals.admin!.email), id, direction);
+  return Astro.redirect(`/admin/team#p-${id}`, 303);
+}
+
+const rows = await listTeam();
+const flash = doneMessage(Astro.url, { deleted: 'Removed. Publish to update the Team page.' });
+const groups = (Object.keys(TEAM_GROUPS) as TeamGroup[]).map((grp) => ({ grp, people: rows.filter((r) => r.grp === grp) }));
+---
+
+<AdminLayout title="Team" flash={flash}>
+  <div class="toolbar">
+    <p class="hint">The executive committee and advisors on the Team page, in the order shown here. The messages from the chairman and coordinator are part of the page text.</p>
+    <a class="btn btn-primary btn-sm" href="/admin/team/new"><Icon name="user-round-plus" size={16} /> Add person</a>
+  </div>
+
+  {
+    groups.map(({ grp, people }) => (
+      <section class="panel">
+        <div class="panel-head">
+          <h2>{TEAM_GROUPS[grp]}</h2>
+          <a class="btn btn-outline btn-sm" href={`/admin/team/new?group=${grp}`}><Icon name="plus" size={16} /> Add</a>
+        </div>
+        <ol class="people">
+          {people.map((p, i) => {
+            const thumb = thumbUrl(p.photo);
+            return (
+              <li id={`p-${p.id}`} class:list={{ hidden: !p.visible }}>
+                {thumb ? <img class="thumb thumb-round" src={thumb} alt="" loading="lazy" /> : <span class="thumb thumb-round initials">{(p.name_en || p.name_ne).slice(0, 1)}</span>}
+                <span class="who">
+                  <a class="row-link" href={`/admin/team/${p.id}`}>{p.name_en || p.name_ne}</a>
+                  <span class="sub">
+                    {p.role_en || p.role_ne}
+                    {!p.visible && <span class="tag tag-grey">Hidden</span>}
+                  </span>
+                </span>
+                <form method="post" class="order" data-no-busy>
+                  <input type="hidden" name="id" value={p.id} />
+                  <button class="btn-icon" type="submit" name="move" value="up" disabled={i === 0} aria-label={`Move ${p.name_en} up`}>
+                    <Icon name="arrow-up" size={16} />
+                  </button>
+                  <button class="btn-icon" type="submit" name="move" value="down" disabled={i === people.length - 1} aria-label={`Move ${p.name_en} down`}>
+                    <Icon name="arrow-down" size={16} />
+                  </button>
+                </form>
+              </li>
+            );
+          })}
+        </ol>
+      </section>
+    ))
+  }
+</AdminLayout>
+
+<style>
+  .people {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .people li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 0.9rem;
+    align-items: center;
+    padding: 0.55rem 0;
+    border-top: 1px solid var(--line);
+    scroll-margin-top: 90px;
+  }
+
+  .people li:first-child {
+    border-top: 0;
+  }
+
+  .people li:target {
+    background: var(--green-50);
+  }
+
+  .hidden .who {
+    opacity: 0.6;
+  }
+
+  .who {
+    display: grid;
+  }
+
+  .row-link {
+    font-weight: 600;
+    color: var(--ink);
+    text-decoration: none;
+  }
+
+  .row-link:hover {
+    color: var(--green);
+    text-decoration: underline;
+  }
+
+  .sub {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    font-size: 0.88rem;
+    color: var(--muted);
+  }
+
+  .initials {
+    display: grid;
+    place-items: center;
+    font-weight: 700;
+    color: var(--green);
+  }
+
+  .order {
+    display: flex;
+    gap: 0.3rem;
+  }
+</style>

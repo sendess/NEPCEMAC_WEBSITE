@@ -1,0 +1,146 @@
+---
+// Frame for the signed-in admin pages: menu on the left, page title and account on top.
+import { Font } from 'astro:assets';
+import '~/styles/global.css';
+import '~/styles/admin.css';
+import Icon from '~/components/Icon.astro';
+import type { IconName } from '~/components/icons';
+import { sql } from '~/lib/db';
+
+type Props = {
+  title: string;
+  /** Green (saved) or red (problem) message shown above the page. */
+  flash?: { text: string; error?: boolean } | null;
+  /** Let tables use the full width instead of a reading column. */
+  wide?: boolean;
+};
+const { title, flash = null, wide = false } = Astro.props;
+const admin = Astro.locals.admin!;
+const path = Astro.url.pathname.replace(/\/$/, '') || '/admin';
+
+// Numbers on the menu: requests nobody has opened yet, and saved changes not yet on the website.
+const [counts] = await sql`
+  select (select count(*) from requests where status = 'new')::int as new_requests,
+    (select count(*) from audit_log
+     where entity in ('activities', 'notices', 'team_members', 'site_settings')
+       and at > coalesce((select max(at) from site_publishes where ok), 'epoch'))::int as unpublished`;
+
+const nav: { href: string; label: string; icon: IconName; badge?: number; owner?: boolean }[] = [
+  { href: '/admin', label: 'Overview', icon: 'house' },
+  { href: '/admin/requests', label: 'Requests', icon: 'inbox', badge: counts.new_requests },
+  { href: '/admin/activities', label: 'Activities', icon: 'camera' },
+  { href: '/admin/notices', label: 'Notices', icon: 'megaphone' },
+  { href: '/admin/team', label: 'Team', icon: 'users' },
+  { href: '/admin/settings', label: 'Contact & figures', icon: 'settings' },
+  { href: '/admin/publish', label: 'Publish', icon: 'rocket', badge: counts.unpublished },
+  { href: '/admin/users', label: 'Staff accounts', icon: 'shield-check', owner: true },
+  { href: '/admin/log', label: 'Activity log', icon: 'list-checks', owner: true },
+  { href: '/admin/account', label: 'My account', icon: 'user-round' },
+];
+const isActive = (href: string) => (href === '/admin' ? path === '/admin' : path === href || path.startsWith(`${href}/`));
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{title} · NEPCEMAC admin</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <Font cssVariable="--font-body" preload />
+    <Font cssVariable="--font-display" />
+  </head>
+  <body class="admin">
+    <a class="skip-link" href="#admin-main">Skip to content</a>
+    <div class="shell">
+      <aside class="sidebar" id="admin-menu" data-sidebar>
+        <a class="brand" href="/admin">
+          <img src="/images/logo-104.webp" srcset="/images/logo-104.webp 1x, /images/logo-208.webp 2x" alt="NEPCEMAC" width="264" height="104" />
+          <small>Admin panel</small>
+        </a>
+        <nav aria-label="Admin">
+          {
+            nav
+              .filter((item) => !item.owner || admin.role === 'owner')
+              .map((item) => (
+                <a href={item.href} aria-current={isActive(item.href) ? 'page' : undefined}>
+                  <Icon name={item.icon} size={20} />
+                  <span>{item.label}</span>
+                  {item.badge ? <span class="badge" aria-label={`${item.badge} waiting`}>{item.badge}</span> : null}
+                </a>
+              ))
+          }
+        </nav>
+        <div class="sidebar-foot">
+          <a href="/" target="_blank" rel="noopener">
+            <Icon name="external-link" size={18} />
+            <span>View website</span>
+          </a>
+        </div>
+      </aside>
+
+      <div class="main">
+        <header class="topbar">
+          <button class="menu-btn" type="button" aria-label="Menu" aria-controls="admin-menu" aria-expanded="false" data-menu-btn>
+            <Icon name="menu" size={22} />
+          </button>
+          <h1>{title}</h1>
+          <div class="who">
+            <span class="who-text">
+              <strong>{admin.name || admin.email}</strong>
+              <small>{admin.role === 'owner' ? 'Owner' : 'Editor'}</small>
+            </span>
+            <form method="post" action="/admin/logout" data-no-busy>
+              <button class="btn btn-outline btn-sm" type="submit"><Icon name="log-out" size={16} /> Sign out</button>
+            </form>
+          </div>
+        </header>
+        <main id="admin-main" class:list={['content', { wide }]}>
+          {
+            flash && (
+              <p class:list={['flash', { error: flash.error }]} role={flash.error ? 'alert' : 'status'}>
+                <Icon name={flash.error ? 'triangle-alert' : 'circle-check'} size={20} />
+                {flash.text}
+              </p>
+            )
+          }
+          <slot />
+        </main>
+      </div>
+    </div>
+
+    <script>
+      import '~/scripts/busy';
+
+      const menuBtn = document.querySelector<HTMLButtonElement>('[data-menu-btn]');
+      menuBtn?.addEventListener('click', () => {
+        const open = document.querySelector('[data-sidebar]')!.classList.toggle('open');
+        menuBtn.setAttribute('aria-expanded', String(open));
+      });
+      // Ask before deleting anything.
+      document.addEventListener(
+        'submit',
+        (e) => {
+          const submitter = (e as SubmitEvent).submitter as HTMLElement | null;
+          const question = submitter?.dataset.confirm ?? (e.target as HTMLElement).dataset.confirm;
+          if (question && !confirm(question)) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+          }
+        },
+        true,
+      );
+      // Warn before leaving a form with unsaved changes.
+      document.querySelectorAll<HTMLFormElement>('form[data-unsaved]').forEach((form) => {
+        let dirty = false;
+        form.addEventListener('input', () => (dirty = true));
+        form.addEventListener('change', () => (dirty = true));
+        form.addEventListener('submit', () => (dirty = false));
+        addEventListener('beforeunload', (e) => {
+          if (dirty) e.preventDefault();
+        });
+      });
+    </script>
+  </body>
+</html>

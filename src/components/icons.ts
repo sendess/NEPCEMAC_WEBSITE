@@ -55,6 +55,23 @@ import ListFilterIcon from '@lucide/astro/icons/list-filter';
 import ArrowDownIcon from '@lucide/astro/icons/arrow-down';
 import ExpandIcon from '@lucide/astro/icons/expand';
 import LoaderCircleIcon from '@lucide/astro/icons/loader-circle';
+// Admin panel
+import InboxIcon from '@lucide/astro/icons/inbox';
+import PencilIcon from '@lucide/astro/icons/pencil';
+import PlusIcon from '@lucide/astro/icons/plus';
+import LogOutIcon from '@lucide/astro/icons/log-out';
+import SettingsIcon from '@lucide/astro/icons/settings';
+import ShieldCheckIcon from '@lucide/astro/icons/shield-check';
+import UploadIcon from '@lucide/astro/icons/upload';
+import ImagePlusIcon from '@lucide/astro/icons/image-plus';
+import EyeOffIcon from '@lucide/astro/icons/eye-off';
+import RocketIcon from '@lucide/astro/icons/rocket';
+import KeyRoundIcon from '@lucide/astro/icons/key-round';
+import UserRoundIcon from '@lucide/astro/icons/user-round';
+import UserRoundPlusIcon from '@lucide/astro/icons/user-round-plus';
+import RefreshCwIcon from '@lucide/astro/icons/refresh-cw';
+import LinkIcon from '@lucide/astro/icons/link';
+import ListChecksIcon from '@lucide/astro/icons/list-checks';
 
 export const icons = {
   'arrow-right': ArrowRightIcon,
@@ -113,6 +130,22 @@ export const icons = {
   'arrow-down': ArrowDownIcon,
   'expand': ExpandIcon,
   'loader-circle': LoaderCircleIcon,
+  'inbox': InboxIcon,
+  'pencil': PencilIcon,
+  'plus': PlusIcon,
+  'log-out': LogOutIcon,
+  'settings': SettingsIcon,
+  'shield-check': ShieldCheckIcon,
+  'upload': UploadIcon,
+  'image-plus': ImagePlusIcon,
+  'eye-off': EyeOffIcon,
+  'rocket': RocketIcon,
+  'key-round': KeyRoundIcon,
+  'user-round': UserRoundIcon,
+  'user-round-plus': UserRoundPlusIcon,
+  'refresh-cw': RefreshCwIcon,
+  'link': LinkIcon,
+  'list-checks': ListChecksIcon,
 } as const;
 
 export type IconName = keyof typeof icons;

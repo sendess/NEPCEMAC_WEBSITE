@@ -1,12 +1,33 @@
 // @ts-check
-import { defineConfig, fontProviders } from 'astro/config';
+import { defineConfig, envField, fontProviders } from 'astro/config';
+import netlify from '@astrojs/netlify';
 import sitemap from '@astrojs/sitemap';
 
-// Level 1: a fully static site. Pages keep their content in src/data so an admin
-// panel (Level 2, like nepsemyak.com.np) can take it over section by section.
+// Public pages are built as static files. When DATABASE_URL is set they read their content
+// (activities, notices, team, contact details) from the database at build time; the admin
+// panel's "Publish" button starts a new build. Admin pages and APIs run on demand.
 export default defineConfig({
   site: 'https://nepcemac.org.np',
   trailingSlash: 'ignore',
+
+  adapter: netlify({
+    // Build-time image optimisation only; uploaded photos are resized in the browser.
+    imageCDN: false,
+    devFeatures: { images: false, environmentVariables: false, edgeFunctions: false },
+  }),
+  // Astro sessions are unused (admin sign-in has its own session table).
+  session: false,
+
+  env: {
+    schema: {
+      // Without a database the site builds from the files in src/data (as before the admin panel).
+      DATABASE_URL: envField.string({ context: 'server', access: 'secret', optional: true }),
+      // Encrypts authenticator keys and hashes visitor IP addresses. At least 32 characters.
+      ADMIN_SECRETS_KEY: envField.string({ context: 'server', access: 'secret', optional: true, min: 32 }),
+      // Netlify build hook URL, called by the admin "Publish" button.
+      NETLIFY_BUILD_HOOK: envField.string({ context: 'server', access: 'secret', optional: true }),
+    },
+  },
 
   i18n: {
     locales: ['en', 'ne'],
@@ -43,6 +64,7 @@ export default defineConfig({
   integrations: [
     sitemap({
       i18n: { defaultLocale: 'en', locales: { en: 'en-NP', ne: 'ne-NP' } },
+      filter: (page) => !page.includes('/admin'),
     }),
   ],
 });

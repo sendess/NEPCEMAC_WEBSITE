@@ -4,8 +4,8 @@ import Icon from '~/components/Icon.astro';
 import PageHero from '~/components/PageHero.astro';
 import PageNav from '~/components/PageNav.astro';
 import { faqGroups } from '~/data/faq';
-import { org } from '~/data/site';
 import { formatDigits, localizePath, telHref, tr, useTranslations, type Lang } from '~/i18n/utils';
+import { getContact } from '~/lib/site-data';
 
 type Props = { lang: Lang };
 const { lang } = Astro.props;
@@ -23,6 +23,7 @@ const jsonLd = {
     })),
   ),
 };
+const contact = await getContact();
 ---
 
 <BaseLayout title={t('faq.title')} description={t('faq.lead')}>
@@ -70,7 +71,7 @@ const jsonLd = {
         <p class="phones">
           <Icon name="phone" size={18} />
           <span>
-            {org.phones.map((p, i) => (
+            {contact.phones.map((p, i) => (
               <>
                 {i > 0 && ', '}
                 <a href={telHref(p)}>{formatDigits(p, lang)}</a>
@@ -78,7 +79,7 @@ const jsonLd = {
             ))}
           </span>
         </p>
-        <p class="small muted">{tr(org.hours, lang)}</p>
+        <p class="small muted">{tr(contact.hours, lang)}</p>
       </aside>
     </div>
   </section>

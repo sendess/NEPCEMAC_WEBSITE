@@ -1,0 +1,52 @@
+---
+import AuthLayout from '~/layouts/AuthLayout.astro';
+import { requestActor } from '~/lib/audit';
+import { checkCode } from '~/lib/auth';
+import { safeNext } from '~/lib/admin-routes';
+
+export const prerender = false;
+
+// The middleware shows this page only after the password was accepted.
+const access = Astro.locals.access!;
+const next = safeNext(Astro.url.searchParams.get('next'));
+let error = '';
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const code = String(form.get('code') ?? '').trim().slice(0, 20);
+  const result = await checkCode(Astro.cookies, access, requestActor(Astro, access.admin!.email), code);
+  if (result.ok) {
+    // Running low on recovery codes: go to My account, where new ones can be made.
+    if (result.recoveryLeft !== undefined && result.recoveryLeft < 4) {
+      return Astro.redirect(`/admin/account?recovery-left=${result.recoveryLeft}`, 303);
+    }
+    return Astro.redirect(next, 303);
+  }
+  if (result.signedOut) return Astro.redirect('/admin/login?locked=1', 303);
+  error = result.message;
+}
+---
+
+<AuthLayout title="Enter your code" flash={error ? { text: error, error: true } : null}>
+  <p>Open the authenticator app on your phone and type the 6-digit code shown for <strong>NEPCEMAC Admin</strong>.</p>
+  <form method="post">
+    <div class="field">
+      <label for="code">Code</label>
+      <input
+        id="code"
+        name="code"
+        class="code-input"
+        inputmode="numeric"
+        autocomplete="one-time-code"
+        maxlength="14"
+        required
+        autofocus
+      />
+    </div>
+    <button class="btn btn-primary" type="submit">Sign in</button>
+  </form>
+  <p class="hint">Lost your phone? Type one of your recovery codes (like <code>k7m2p-x9qfa</code>) instead.</p>
+  <form method="post" action="/admin/logout" data-no-busy>
+    <button class="btn btn-outline btn-sm" type="submit">Use a different account</button>
+  </form>
+</AuthLayout>

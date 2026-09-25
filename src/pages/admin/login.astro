@@ -1,0 +1,48 @@
+---
+import AuthLayout from '~/layouts/AuthLayout.astro';
+import { requestActor } from '~/lib/audit';
+import { normalizeEmail, signIn } from '~/lib/auth';
+import { safeNext } from '~/lib/admin-routes';
+
+export const prerender = false;
+
+const next = safeNext(Astro.url.searchParams.get('next'));
+let email = '';
+let error = '';
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  email = normalizeEmail(form.get('email'));
+  const password = String(form.get('password') ?? '').slice(0, 200);
+  const result = email && password ? await signIn(Astro.cookies, requestActor(Astro, email), email, password) : null;
+  // The next step (authenticator code, or setting one up) is chosen by the middleware.
+  if (result?.ok) return Astro.redirect(next, 303);
+  error = result?.message ?? 'Enter your email and password.';
+}
+
+const notice = Astro.url.searchParams.has('signed-out')
+  ? { text: 'You are signed out.' }
+  : Astro.url.searchParams.has('link-used')
+    ? { text: 'That link has already been used or has expired. Ask the owner for a new one.', error: true }
+    : Astro.url.searchParams.has('locked')
+      ? { text: 'Too many wrong codes. Wait 15 minutes, then sign in again.', error: true }
+      : null;
+---
+
+<AuthLayout title="Sign in" flash={error ? { text: error, error: true } : notice}>
+  <form method="post">
+    <div class="field">
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" autocomplete="username" required value={email} autofocus={!email} />
+    </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required autofocus={Boolean(email)} />
+    </div>
+    <button class="btn btn-primary" type="submit">Continue</button>
+  </form>
+  <p class="hint">
+    Forgot your password? Ask the owner of the admin panel for a reset link. After the password you will need the code from your
+    authenticator app.
+  </p>
+</AuthLayout>

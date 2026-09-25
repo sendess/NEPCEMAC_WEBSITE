@@ -8,8 +8,8 @@ import YouTube from '~/components/YouTube.astro';
 import { org } from '~/data/site';
 import { milestones } from '~/data/about';
 import { themes, sortingGuide } from '~/data/programmes';
-import { activities } from '~/data/activities';
 import { caption } from '~/data/photos';
+import { getActivities, getContact, getFigures } from '~/lib/site-data';
 import { fill } from '~/i18n/ui';
 import { formatDate, formatDigits, formatNumber, localizePath, tr, useTranslations, yearsSince, type Lang } from '~/i18n/utils';
 
@@ -18,11 +18,13 @@ const { lang } = Astro.props;
 const t = useTranslations(lang);
 const L = (p: string) => localizePath(p, lang);
 
+const [activities, contact, figures] = await Promise.all([getActivities(), getContact(), getFigures()]);
+
 const stats = [
   { value: formatDigits(yearsSince(org.foundedOn), lang), label: t('home.stats.years') },
-  { value: formatNumber(50000, lang), label: t('home.stats.families') },
-  { value: `${formatNumber(33000, lang)}+`, label: t('home.stats.trained') },
-  { value: formatDigits(5, lang), label: t('home.stats.cities') },
+  { value: formatNumber(figures.families, lang), label: t('home.stats.families') },
+  { value: `${formatNumber(figures.trained, lang)}+`, label: t('home.stats.trained') },
+  { value: formatNumber(figures.cities, lang), label: t('home.stats.cities') },
 ];
 
 const journey = milestones.filter((m) => ['1997', '2001', '2004', '2005', '2008', '2013'].includes(m.year.en));
@@ -231,7 +233,7 @@ const highlights = [
           field.map((a) => (
             <li class="card field-card">
               <div class="photo ratio-3-2">
-                <Photo slug={a.photos[0]} alt={caption(a.photos[0], lang)} sizes="(min-width: 1000px) 380px, 100vw" />
+                <Photo slug={a.photos[0].ref} alt={tr(a.photos[0].alt, lang)} sizes="(min-width: 1000px) 380px, 100vw" />
               </div>
               <div class="card-pad field-body">
                 <p class="date">
@@ -270,7 +272,7 @@ const highlights = [
         </div>
         <div class="btn-row">
           <a class="btn btn-light" href={L('/contact/#get-involved')}>{t('cta.workWithUs')}</a>
-          <a class="btn btn-ghost-light" href={`mailto:${org.email}`}><Icon name="mail" size={18} /> {org.email}</a>
+          <a class="btn btn-ghost-light" href={`mailto:${contact.email}`}><Icon name="mail" size={18} /> {contact.email}</a>
         </div>
       </div>
     </div>

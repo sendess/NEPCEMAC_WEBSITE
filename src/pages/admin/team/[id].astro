@@ -1,0 +1,160 @@
+---
+import AdminLayout from '~/layouts/AdminLayout.astro';
+import Icon from '~/components/Icon.astro';
+import BilingualField from '~/components/admin/BilingualField.astro';
+import { requestActor } from '~/lib/audit';
+import { doneMessage } from '~/lib/admin-format';
+import { deleteTeamMember, emptyTeamMember, getTeamMember, saveTeamMember, TEAM_GROUPS, type TeamForm } from '~/lib/content';
+import type { FieldErrors } from '~/lib/forms';
+import { thumbUrl } from '~/lib/photos';
+
+export const prerender = false;
+
+const isNew = Astro.params.id === 'new';
+const existing = isNew ? null : await getTeamMember(Astro.params.id ?? '');
+if (!isNew && !existing) return new Response(null, { status: 404 });
+
+let data: TeamForm = existing ?? emptyTeamMember(Astro.url.searchParams.get('group') === 'advisor' ? 'advisor' : 'board');
+let errors: FieldErrors = {};
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const actor = requestActor(Astro, Astro.locals.admin!.email);
+  if (form.get('_action') === 'delete' && existing) {
+    await deleteTeamMember(actor, existing.id);
+    return Astro.redirect('/admin/team?done=deleted', 303);
+  }
+  const saved = await saveTeamMember(actor, existing?.id ?? null, form);
+  if (saved.ok) return Astro.redirect(`/admin/team/${saved.id}?done=saved`, 303);
+  data = saved.data;
+  errors = saved.errors;
+}
+
+const flash = Object.keys(errors).length
+  ? { text: 'Some fields need attention — see below.', error: true }
+  : doneMessage(Astro.url, { saved: 'Saved. Publish when you are ready for the Team page to change.' });
+const photo = thumbUrl(data.photo);
+---
+
+<AdminLayout title={isNew ? 'Add person' : data.name_en || data.name_ne} flash={flash}>
+  <p class="back"><a href="/admin/team"><Icon name="chevron-left" size={16} /> Team</a></p>
+
+  <form method="post" class="stack" data-unsaved>
+    <section class="panel">
+      <div class="field">
+        <label for="grp">Group</label>
+        <select id="grp" name="grp">
+          {Object.entries(TEAM_GROUPS).map(([k, label]) => <option value={k} selected={k === data.grp}>{label}</option>)}
+        </select>
+      </div>
+      <BilingualField name="name" label="Name" value={{ en: data.name_en, ne: data.name_ne }} required maxlength={120} error={errors.name_en} />
+      <BilingualField name="role" label="Role" value={{ en: data.role_en, ne: data.role_ne }} required maxlength={120} error={errors.role_en} hint="For example: Chairman, Board member, Legal advisor." />
+      <BilingualField name="note" label="Short note" value={{ en: data.note_en, ne: data.note_ne }} maxlength={200} hint="For example: Former president." />
+    </section>
+
+    <section class="panel">
+      <h2>Photo <span class="opt">(optional)</span></h2>
+      <div class="portrait" data-portrait>
+        <input type="hidden" name="photo" value={data.photo ?? ''} data-photo-value />
+        <img src={photo ?? ''} alt="" width="120" height="120" data-photo-preview hidden={!photo} />
+        <span class="none" data-photo-none hidden={Boolean(photo)}>No photo — the initials are shown instead.</span>
+        <div class="btn-row">
+          <label class="btn btn-outline btn-sm upload-btn">
+            <Icon name="upload" size={16} /> <span>Upload photo</span>
+            <input type="file" accept="image/*" data-photo-upload />
+          </label>
+          <button class="btn btn-outline btn-sm" type="button" data-photo-remove hidden={!photo}>Remove photo</button>
+        </div>
+        <p class="hint" data-photo-status aria-live="polite">A square photo of the face works best.</p>
+      </div>
+    </section>
+
+    <div class="actions-bar">
+      <label class="check-row">
+        <input type="checkbox" name="visible" checked={data.visible} />
+        Show on the website
+      </label>
+      <div class="btn-row">
+        {
+          existing && (
+            <button class="btn btn-danger btn-sm" type="submit" name="_action" value="delete" formnovalidate data-confirm="Remove this person from the Team page?">
+              <Icon name="trash" size={16} /> Remove
+            </button>
+          )
+        }
+        <button class="btn btn-primary" type="submit" name="_action" value="save">{isNew ? 'Add person' : 'Save'}</button>
+      </div>
+    </div>
+  </form>
+</AdminLayout>
+
+<script>
+  import { uploadPhoto } from '~/scripts/image-upload';
+
+  const box = document.querySelector<HTMLElement>('[data-portrait]');
+  if (box) {
+    const value = box.querySelector<HTMLInputElement>('[data-photo-value]')!;
+    const preview = box.querySelector<HTMLImageElement>('[data-photo-preview]')!;
+    const none = box.querySelector<HTMLElement>('[data-photo-none]')!;
+    const remove = box.querySelector<HTMLButtonElement>('[data-photo-remove]')!;
+    const status = box.querySelector<HTMLElement>('[data-photo-status]')!;
+    const input = box.querySelector<HTMLInputElement>('[data-photo-upload]')!;
+    const show = (src: string, url: string) => {
+      value.value = src;
+      preview.src = url;
+      preview.hidden = !src;
+      none.hidden = Boolean(src);
+      remove.hidden = !src;
+      box.closest('form')?.dispatchEvent(new Event('change'));
+    };
+    remove.addEventListener('click', () => {
+      show('', '');
+      status.textContent = 'Photo removed. Remember to save.';
+    });
+    input.addEventListener('change', async () => {
+      const file = input.files?.[0];
+      input.value = '';
+      if (!file) return;
+      status.textContent = 'Uploading…';
+      try {
+        const photo = await uploadPhoto(file);
+        show(`media:${photo.id}`, photo.small);
+        status.textContent = 'Photo uploaded. Remember to save.';
+      } catch (err) {
+        status.textContent = (err as Error).message;
+      }
+    });
+  }
+</script>
+
+<style>
+  .portrait {
+    display: grid;
+    gap: 0.75rem;
+    justify-items: start;
+  }
+
+  .portrait img {
+    width: 120px;
+    height: 120px;
+    border-radius: 14px;
+    object-fit: cover;
+    background: var(--green-100);
+  }
+
+  .none {
+    color: var(--muted);
+  }
+
+  .upload-btn {
+    position: relative;
+    cursor: pointer;
+  }
+
+  .upload-btn input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+</style>

@@ -5,8 +5,10 @@ import Header from '~/components/Header.astro';
 import Footer from '~/components/Footer.astro';
 import Lightbox from '~/components/Lightbox.astro';
 import BackToTop from '~/components/BackToTop.astro';
+import NoticeBar from '~/components/NoticeBar.astro';
 import { org } from '~/data/site';
 import { getLangFromUrl, localizePath, stripLang, useTranslations, type Lang } from '~/i18n/utils';
+import { getContact } from '~/lib/site-data';
 
 type Props = {
   title?: string;
@@ -17,6 +19,7 @@ type Props = {
 const lang: Lang = getLangFromUrl(Astro.url);
 const t = useTranslations(lang);
 const { title, description = org.description[lang], noindex = false } = Astro.props;
+const contact = await getContact();
 
 const fullTitle = title ? `${title} | ${org.name[lang]}` : `${org.name[lang]} — ${org.legalName[lang]}`;
 const basePath = stripLang(Astro.url.pathname);
@@ -31,8 +34,8 @@ const jsonLd = {
   slogan: org.motto.en,
   url: Astro.site?.href,
   logo: new URL('/images/logo-208.webp', Astro.site).href,
-  email: org.email,
-  telephone: org.phones.map((p) => `+977-${p.replace(/^0/, '')}`),
+  email: contact.email,
+  telephone: contact.phones.map((p) => `+977-${p.replace(/^0/, '')}`),
   foundingDate: org.foundedOn,
   address: {
     '@type': 'PostalAddress',
@@ -41,7 +44,7 @@ const jsonLd = {
     postalCode: '44600',
     addressCountry: 'NP',
   },
-  sameAs: [org.facebook],
+  sameAs: [contact.facebook],
 };
 ---
 
@@ -87,6 +90,7 @@ const jsonLd = {
   </head>
   <body>
     <a class="skip-link" href="#main">{t('site.skip')}</a>
+    <NoticeBar lang={lang} />
     <Header lang={lang} />
     <main id="main">
       <slot />

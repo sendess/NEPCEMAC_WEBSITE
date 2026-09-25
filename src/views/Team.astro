@@ -5,12 +5,14 @@ import PageHero from '~/components/PageHero.astro';
 import PageNav from '~/components/PageNav.astro';
 import PersonCard from '~/components/PersonCard.astro';
 import SectionHead from '~/components/SectionHead.astro';
-import { board, advisors, messages } from '~/data/team';
+import { messages } from '~/data/team';
+import { getTeam } from '~/lib/site-data';
 import { localizePath, tr, useTranslations, type Lang } from '~/i18n/utils';
 
 type Props = { lang: Lang };
 const { lang } = Astro.props;
 const t = useTranslations(lang);
+const { board, advisors } = await getTeam();
 const advisorsWithPhoto = advisors.filter((p) => p.photo);
 const advisorsOthers = advisors.filter((p) => !p.photo);
 ---

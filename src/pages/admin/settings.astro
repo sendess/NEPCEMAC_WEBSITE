@@ -1,0 +1,103 @@
+---
+import AdminLayout from '~/layouts/AdminLayout.astro';
+import BilingualField from '~/components/admin/BilingualField.astro';
+import { requestActor } from '~/lib/audit';
+import { doneMessage } from '~/lib/admin-format';
+import { saveContact, saveFigures } from '~/lib/content';
+import type { FieldErrors } from '~/lib/forms';
+import { getContact, getFigures } from '~/lib/site-data';
+
+export const prerender = false;
+
+let contact = await getContact(true);
+let figures = await getFigures(true);
+let errors: FieldErrors = {};
+let failed = '';
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const actor = requestActor(Astro, Astro.locals.admin!.email);
+  if (form.get('_action') === 'figures') {
+    const saved = await saveFigures(actor, form);
+    if (saved.ok) return Astro.redirect('/admin/settings?done=figures#figures', 303);
+    figures = saved.data;
+    errors = saved.errors;
+    failed = 'figures';
+  } else {
+    const saved = await saveContact(actor, form);
+    if (saved.ok) return Astro.redirect('/admin/settings?done=contact', 303);
+    contact = saved.data;
+    errors = saved.errors;
+    failed = 'contact';
+  }
+}
+
+const flash = failed
+  ? { text: 'Some fields need attention — see below.', error: true }
+  : doneMessage(Astro.url, {
+      contact: 'Contact details saved. Publish to update the website.',
+      figures: 'Figures saved. Publish to update the home page.',
+    });
+const err = (section: string, name: string) => (failed === section ? errors[name] : undefined);
+---
+
+<AdminLayout title="Contact & figures" flash={flash}>
+  <form method="post" class="stack" data-unsaved>
+    <input type="hidden" name="_action" value="contact" />
+    <section class="panel">
+      <div>
+        <h2>Contact details</h2>
+        <p class="hint">Shown in the footer of every page, on the Contact and FAQ pages and on the printable poster.</p>
+      </div>
+      <div class="row-2">
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" value={contact.email} required aria-invalid={err('contact', 'email') ? 'true' : undefined} />
+          {err('contact', 'email') && <p class="field-error">{err('contact', 'email')}</p>}
+        </div>
+        <div class="field">
+          <label for="phones">Phone numbers</label>
+          <textarea id="phones" name="phones" rows="2" aria-invalid={err('contact', 'phones') ? 'true' : undefined}>{contact.phones.join('\n')}</textarea>
+          <p class="hint">One per line, as people should dial them (e.g. 01-5432827).</p>
+          {err('contact', 'phones') && <p class="field-error">{err('contact', 'phones')}</p>}
+        </div>
+      </div>
+      <BilingualField name="address" label="Address" value={contact.address} required error={err('contact', 'address_en')} />
+      <BilingualField name="hours" label="Office hours" value={contact.hours} />
+      <div class="field">
+        <label for="facebook">Facebook page</label>
+        <input id="facebook" name="facebook" value={contact.facebook} placeholder="https://www.facebook.com/…" aria-invalid={err('contact', 'facebook') ? 'true' : undefined} />
+        {err('contact', 'facebook') && <p class="field-error">{err('contact', 'facebook')}</p>}
+      </div>
+      <div><button class="btn btn-primary" type="submit">Save contact details</button></div>
+    </section>
+  </form>
+
+  <form method="post" class="stack" id="figures" data-unsaved>
+    <input type="hidden" name="_action" value="figures" />
+    <section class="panel">
+      <div>
+        <h2>Home page figures</h2>
+        <p class="hint">The numbers in the green band on the home page. Years of work are counted from 1997 automatically.</p>
+      </div>
+      <div class="row-3">
+        <div class="field">
+          <label for="families">Households served</label>
+          <input id="families" name="families" type="number" min="0" value={figures.families} required />
+          {err('figures', 'families') && <p class="field-error">{err('figures', 'families')}</p>}
+        </div>
+        <div class="field">
+          <label for="trained">People trained <span class="opt">(shown with +)</span></label>
+          <input id="trained" name="trained" type="number" min="0" value={figures.trained} required />
+          {err('figures', 'trained') && <p class="field-error">{err('figures', 'trained')}</p>}
+        </div>
+        <div class="field">
+          <label for="cities">Municipalities</label>
+          <input id="cities" name="cities" type="number" min="0" value={figures.cities} required />
+          {err('figures', 'cities') && <p class="field-error">{err('figures', 'cities')}</p>}
+        </div>
+      </div>
+      <div><button class="btn btn-primary" type="submit">Save figures</button></div>
+    </section>
+  </form>
+</AdminLayout>

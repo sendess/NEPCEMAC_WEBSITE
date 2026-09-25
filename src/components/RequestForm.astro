@@ -1,10 +1,10 @@
 ---
-// Request form without a backend: it turns the answers into a ready-to-send message
-// (email app, or copy and paste anywhere). Nothing is stored on the site.
-// Level 2 can post the same fields to a database instead.
+// Request form. Answers go to the requests inbox in the admin panel (/api/request) and the
+// sender gets a reference number. If that fails (offline, or a site without a database) the
+// answers become a ready-to-send message instead: email app, or copy and paste anywhere.
 import Icon from './Icon.astro';
-import { org } from '~/data/site';
 import { formatDigits, telHref, useTranslations, type Lang } from '~/i18n/utils';
+import { getContact } from '~/lib/site-data';
 
 type Props = { lang: Lang };
 const { lang } = Astro.props;
@@ -28,11 +28,14 @@ const strings = {
   errorContact: t('form.errorContact'),
   copied: t('form.copied'),
   copy: t('form.copy'),
+  sending: t('form.sending'),
+  sentText: t('form.sentText'),
   footer: lang === 'ne' ? '— nepcemac.org.np बाट पठाइएको' : '— Sent from nepcemac.org.np',
 };
+const contact = await getContact();
 ---
 
-<form class="request" data-request novalidate data-email={org.email}>
+<form class="request" data-request novalidate data-email={contact.email}>
   <script is:inline type="application/json" data-request-strings set:html={JSON.stringify(strings)} />
 
   <fieldset class="types">
@@ -89,26 +92,39 @@ const strings = {
     </div>
   </div>
 
+  <!-- Left empty by people; filled in by spam robots. -->
+  <div class="hp" aria-hidden="true">
+    <label>Website <input name="website" tabindex="-1" autocomplete="off" /></label>
+  </div>
+
   <div class="actions">
-    <button class="btn btn-primary" type="submit">
+    <button class="btn btn-primary" type="submit" data-request-submit>
       <Icon name="send" size={18} />
-      {t('form.submit')}
+      <span>{t('form.submit')}</span>
     </button>
     <p class="small muted">{t('form.privacy')}</p>
   </div>
 
+  <div class="sent" data-request-sent hidden tabindex="-1" role="status" aria-labelledby="rq-sent-title">
+    <h3 id="rq-sent-title"><Icon name="circle-check" size={22} /> {t('form.sentTitle')}</h3>
+    <p data-request-sent-text></p>
+    <div class="btn-row">
+      <button class="btn btn-outline" type="button" data-request-again>{t('form.sentAnother')}</button>
+    </div>
+  </div>
+
   <div class="ready" data-request-ready hidden tabindex="-1" role="region" aria-labelledby="rq-ready-title">
-    <h3 id="rq-ready-title"><Icon name="circle-check" size={22} /> {t('form.readyTitle')}</h3>
+    <h3 id="rq-ready-title"><Icon name="info" size={22} /> {t('form.readyTitle')}</h3>
     <p>{t('form.readyText')}</p>
     <textarea readonly rows="9" data-request-preview aria-label={t('form.message')}></textarea>
     <div class="btn-row">
-      <a class="btn btn-primary" data-request-mailto href={`mailto:${org.email}`}><Icon name="mail" size={18} /> {t('form.openEmail')}</a>
+      <a class="btn btn-primary" data-request-mailto href={`mailto:${contact.email}`}><Icon name="mail" size={18} /> {t('form.openEmail')}</a>
       <button class="btn btn-outline" type="button" data-request-copy><Icon name="copy" size={18} /> <span>{t('form.copy')}</span></button>
       <button class="btn btn-outline" type="button" data-request-edit>{t('form.edit')}</button>
     </div>
     <p class="small muted">
-      {org.email} ·
-      {org.phones.map((p, i) => (
+      {contact.email} ·
+      {contact.phones.map((p, i) => (
         <>
           {i > 0 && ', '}
           <a href={telHref(p)}>{formatDigits(p, lang)}</a>
@@ -126,6 +142,11 @@ const strings = {
     const preview = form.querySelector<HTMLTextAreaElement>('[data-request-preview]')!;
     const mailto = form.querySelector<HTMLAnchorElement>('[data-request-mailto]')!;
     const copyBtn = form.querySelector<HTMLButtonElement>('[data-request-copy]')!;
+    const sent = form.querySelector<HTMLElement>('[data-request-sent]')!;
+    const submitBtn = form.querySelector<HTMLButtonElement>('[data-request-submit]')!;
+    const submitLabel = submitBtn.querySelector('span')!;
+    const submitText = submitLabel.textContent;
+    let sending = false;
     const field = (name: string) => form.elements.namedItem(name) as HTMLInputElement;
     const labelFor = (name: string) =>
       (form.querySelector(`label[for="rq-${name}"]`)?.firstChild?.textContent ?? name).trim();
@@ -146,8 +167,35 @@ const strings = {
       inputs.forEach((i) => (msg ? i.setAttribute('aria-invalid', 'true') : i.removeAttribute('aria-invalid')));
     };
 
-    form.addEventListener('submit', (e) => {
+    /** Sends the answers to the inbox. Returns the reference number, or null to fall back to email. */
+    const send = async (type: string): Promise<string | null> => {
+      const data: Record<string, string> = { type, lang: document.documentElement.lang, website: field('website').value };
+      for (const key of ['name', 'org', 'phone', 'email', 'area', 'date', 'people', 'message']) {
+        const input = field(key);
+        if (!input.closest<HTMLElement>('[hidden]')) data[key] = input.value.trim();
+      }
+      try {
+        const res = await fetch('/api/request', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+        const body = await res.json().catch(() => ({}));
+        return res.ok && typeof body.ref === 'string' ? body.ref : null;
+      } catch {
+        return null;
+      }
+    };
+
+    const reveal = (panel: HTMLElement) => {
+      panel.hidden = false;
+      panel.focus();
+      panel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    };
+
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (sending) return;
       const name = field('name').value.trim();
       const phone = field('phone').value.trim();
       const email = field('email').value.trim();
@@ -169,11 +217,30 @@ const strings = {
       const body = lines.join('\n');
       const subject = s.subject.replace('{type}', typeInput.dataset.label);
 
+      ready.hidden = true;
+      sending = true;
+      submitBtn.setAttribute('aria-busy', 'true');
+      submitLabel.textContent = s.sending;
+      const ref = await send(typeInput.value);
+      sending = false;
+      submitBtn.removeAttribute('aria-busy');
+      submitLabel.textContent = submitText;
+
+      if (ref) {
+        form.querySelector('[data-request-sent-text]')!.textContent = s.sentText.replace('{ref}', ref);
+        form.reset();
+        showFields();
+        reveal(sent);
+        return;
+      }
       preview.value = body;
       mailto.href = `mailto:${form.dataset.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      ready.hidden = false;
-      ready.focus();
-      ready.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      reveal(ready);
+    });
+
+    form.querySelector('[data-request-again]')!.addEventListener('click', () => {
+      sent.hidden = true;
+      field('name').focus();
     });
 
     copyBtn.addEventListener('click', async () => {
@@ -344,6 +411,20 @@ const strings = {
     max-width: 46ch;
   }
 
+  .hp {
+    position: absolute;
+    left: -10000px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+
+  [aria-busy='true'] {
+    opacity: 0.75;
+    cursor: progress;
+  }
+
+  .sent,
   .ready {
     display: grid;
     gap: 0.85rem;
@@ -354,11 +435,22 @@ const strings = {
     outline: none;
   }
 
+  .sent h3,
   .ready h3 {
     display: flex;
     align-items: center;
     gap: 0.5rem;
     color: var(--green-800);
+  }
+
+  /* Fallback when the website couldn't send: blue, not the green of success. */
+  .ready {
+    background: var(--blue-50);
+    border-color: var(--blue-100);
+  }
+
+  .ready h3 {
+    color: var(--blue-800);
   }
 
   .ready textarea {

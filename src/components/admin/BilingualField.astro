@@ -1,0 +1,78 @@
+---
+/**
+ * The same text in English and Nepali, side by side. Fields are named `<name>_en` and `<name>_ne`.
+ * The public site shows the other language when one is left empty.
+ * (Each <textarea> is on one line: whitespace inside it would become part of the text.)
+ */
+type Props = {
+  name: string;
+  label: string;
+  value: { en: string; ne: string };
+  textarea?: boolean;
+  rows?: number;
+  maxlength?: number;
+  required?: boolean;
+  hint?: string;
+  error?: string;
+};
+const { name, label, value, textarea = false, rows = 4, maxlength = 200, required = false, hint, error } = Astro.props;
+const id = (lang: string) => `f-${name}-${lang}`;
+const aria = (lang: string) => `${label} (${lang === 'en' ? 'English' : 'Nepali'})`;
+---
+
+<fieldset class="bi">
+  <legend class="field-label">
+    {label}
+    {!required && <span class="opt"> (optional)</span>}
+  </legend>
+  <div class="lang-pair">
+    {
+      (['en', 'ne'] as const).map((lang) => (
+        <div class="field">
+          <label for={id(lang)} class="sub-label">
+            <span class="lang-tag">{lang === 'en' ? 'EN' : 'नेपाली'}</span>
+          </label>
+          {textarea ? (
+            <textarea id={id(lang)} name={`${name}_${lang}`} rows={rows} maxlength={maxlength} lang={lang} aria-label={aria(lang)} aria-invalid={error && lang === 'en' ? 'true' : undefined}>{value[lang]}</textarea>
+          ) : (
+            <input
+              id={id(lang)}
+              name={`${name}_${lang}`}
+              value={value[lang]}
+              maxlength={maxlength}
+              lang={lang}
+              aria-label={aria(lang)}
+              aria-invalid={error && lang === 'en' ? 'true' : undefined}
+            />
+          )}
+        </div>
+      ))
+    }
+  </div>
+  {hint && <p class="hint">{hint}</p>}
+  {error && <p class="field-error">{error}</p>}
+</fieldset>
+
+<style>
+  .bi {
+    display: grid;
+    gap: 0.35rem;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  legend {
+    margin-bottom: 0.35rem;
+    padding: 0;
+  }
+
+  .sub-label {
+    line-height: 1;
+  }
+
+  .sub-label .lang-tag {
+    margin-left: 0;
+  }
+</style>

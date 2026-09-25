@@ -1,0 +1,66 @@
+---
+import AdminLayout from '~/layouts/AdminLayout.astro';
+import Icon from '~/components/Icon.astro';
+import { doneMessage, formatAgo, formatDay } from '~/lib/admin-format';
+import { listNotices } from '~/lib/content';
+
+export const prerender = false;
+
+const rows = await listNotices();
+const flash = doneMessage(Astro.url, { deleted: 'Notice deleted. Publish to remove it from the website.' });
+const states = {
+  showing: ['Showing', 'tag-green'],
+  scheduled: ['Starts later', 'tag-blue'],
+  ended: ['Ended', 'tag-grey'],
+  hidden: ['Hidden', 'tag-grey'],
+} as const;
+---
+
+<AdminLayout title="Notices" flash={flash}>
+  <div class="toolbar">
+    <p class="hint">A notice appears as a banner at the top of every page between its start and end dates — for example a campaign date, office closure or new programme.</p>
+    <a class="btn btn-primary btn-sm" href="/admin/notices/new"><Icon name="plus" size={16} /> Add notice</a>
+  </div>
+
+  {
+    rows.length === 0 ? (
+      <div class="empty">
+        <Icon name="megaphone" size={32} />
+        <p>No notices yet.</p>
+      </div>
+    ) : (
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Notice</th>
+              <th>Shows</th>
+              <th>Status</th>
+              <th>Last edited</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((n) => (
+              <tr>
+                <td>
+                  <a class="row-link" href={`/admin/notices/${n.id}`}>{n.title_en || n.title_ne}</a>
+                  {n.body_en && <span class="sub">{n.body_en.slice(0, 90)}{n.body_en.length > 90 ? '…' : ''}</span>}
+                </td>
+                <td class="nowrap">
+                  {n.starts_on ? formatDay(n.starts_on).split(' · ')[0] : 'Now'} – {n.ends_on ? formatDay(n.ends_on).split(' · ')[0] : 'no end date'}
+                </td>
+                <td>
+                  <span class:list={['tag', states[n.state][1]]}>{states[n.state][0]}</span>
+                </td>
+                <td class="nowrap">
+                  {formatAgo(n.updated_at)}
+                  <span class="sub">{n.updated_by}</span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )
+  }
+</AdminLayout>

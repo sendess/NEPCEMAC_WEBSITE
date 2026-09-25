@@ -1,0 +1,46 @@
+---
+// Single card for the sign-in steps: password, authenticator code, first-time setup, invitation links.
+import { Font } from 'astro:assets';
+import '~/styles/global.css';
+import '~/styles/admin.css';
+import Icon from '~/components/Icon.astro';
+
+type Props = { title: string; wide?: boolean; flash?: { text: string; error?: boolean } | null };
+const { title, wide = false, flash = null } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{title} · NEPCEMAC admin</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <Font cssVariable="--font-body" preload />
+    <Font cssVariable="--font-display" />
+  </head>
+  <body class="admin">
+    <main class="auth-page">
+      <div class:list={['auth-card', { wide }]}>
+        <p class="auth-brand">
+          <img src="/images/logo-104.webp" srcset="/images/logo-104.webp 1x, /images/logo-208.webp 2x" alt="NEPCEMAC" width="264" height="104" />
+          <span>Admin panel</span>
+        </p>
+        <h1>{title}</h1>
+        {
+          flash && (
+            <p class:list={['flash', { error: flash.error }]} role={flash.error ? 'alert' : 'status'}>
+              <Icon name={flash.error ? 'triangle-alert' : 'circle-check'} size={20} />
+              {flash.text}
+            </p>
+          )
+        }
+        <slot />
+      </div>
+    </main>
+    <script>
+      import '~/scripts/busy';
+    </script>
+  </body>
+</html>

@@ -3,7 +3,7 @@ import type { L } from '~/i18n/utils';
 export type Person = {
   name: L;
   role: L;
-  /** File name in public/images/team (without .webp). No photo shows initials. */
+  /** File name in public/images/team (without .webp), or the address of an uploaded photo. No photo shows initials. */
   photo?: string;
   note?: L;
 };

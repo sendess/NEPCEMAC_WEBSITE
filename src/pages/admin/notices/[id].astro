@@ -1,0 +1,91 @@
+---
+import AdminLayout from '~/layouts/AdminLayout.astro';
+import Icon from '~/components/Icon.astro';
+import BilingualField from '~/components/admin/BilingualField.astro';
+import { requestActor } from '~/lib/audit';
+import { doneMessage } from '~/lib/admin-format';
+import { deleteNotice, emptyNotice, getNotice, saveNotice, type NoticeForm } from '~/lib/content';
+import type { FieldErrors } from '~/lib/forms';
+
+export const prerender = false;
+
+const isNew = Astro.params.id === 'new';
+const existing = isNew ? null : await getNotice(Astro.params.id ?? '');
+if (!isNew && !existing) return new Response(null, { status: 404 });
+
+let data: NoticeForm = existing ?? emptyNotice();
+let errors: FieldErrors = {};
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const actor = requestActor(Astro, Astro.locals.admin!.email);
+  if (form.get('_action') === 'delete' && existing) {
+    await deleteNotice(actor, existing.id);
+    return Astro.redirect('/admin/notices?done=deleted', 303);
+  }
+  const saved = await saveNotice(actor, existing?.id ?? null, form);
+  if (saved.ok) return Astro.redirect(`/admin/notices/${saved.id}?done=saved`, 303);
+  data = saved.data;
+  errors = saved.errors;
+}
+
+const flash = Object.keys(errors).length
+  ? { text: 'Some fields need attention — see below.', error: true }
+  : doneMessage(Astro.url, { saved: 'Saved. Publish when you are ready for the notice to appear on the website.' });
+---
+
+<AdminLayout title={isNew ? 'Add notice' : data.title_en || data.title_ne || 'Notice'} flash={flash}>
+  <p class="back"><a href="/admin/notices"><Icon name="chevron-left" size={16} /> All notices</a></p>
+
+  <form method="post" class="stack" data-unsaved>
+    <section class="panel">
+      <BilingualField name="title" label="Title" value={{ en: data.title_en, ne: data.title_ne }} required maxlength={160} error={errors.title_en} />
+      <BilingualField name="body" label="Short text" textarea rows={3} maxlength={600} value={{ en: data.body_en, ne: data.body_ne }} hint="One or two sentences. Longer news belongs in an activity." />
+    </section>
+
+    <section class="panel">
+      <h2>When</h2>
+      <div class="row-2">
+        <div class="field">
+          <label for="starts_on">Show from <span class="opt">(optional)</span></label>
+          <input id="starts_on" name="starts_on" type="date" value={data.starts_on ?? ''} />
+          {errors.starts_on && <p class="field-error">{errors.starts_on}</p>}
+        </div>
+        <div class="field">
+          <label for="ends_on">Show until <span class="opt">(optional)</span></label>
+          <input id="ends_on" name="ends_on" type="date" value={data.ends_on ?? ''} aria-invalid={errors.ends_on ? 'true' : undefined} />
+          {errors.ends_on && <p class="field-error">{errors.ends_on}</p>}
+        </div>
+      </div>
+      <p class="hint">The notice appears on the start date and disappears after the end date by itself — even without publishing again.</p>
+    </section>
+
+    <section class="panel">
+      <h2>Link <span class="opt">(optional)</span></h2>
+      <div class="field">
+        <label for="link_url">Address</label>
+        <input id="link_url" name="link_url" value={data.link_url ?? ''} placeholder="https://… or /activities/" aria-invalid={errors.link_url ? 'true' : undefined} />
+        {errors.link_url && <p class="field-error">{errors.link_url}</p>}
+      </div>
+      <BilingualField name="link_label" label="Link text" value={{ en: data.link_label_en, ne: data.link_label_ne }} maxlength={60} hint="Leave empty for “Read more”." />
+    </section>
+
+    <div class="actions-bar">
+      <label class="check-row">
+        <input type="checkbox" name="visible" checked={data.visible} />
+        Show on the website
+      </label>
+      <div class="btn-row">
+        {
+          existing && (
+            <button class="btn btn-danger btn-sm" type="submit" name="_action" value="delete" formnovalidate data-confirm="Delete this notice?">
+              <Icon name="trash" size={16} /> Delete
+            </button>
+          )
+        }
+        <button class="btn btn-primary" type="submit" name="_action" value="save">{isNew ? 'Add notice' : 'Save'}</button>
+      </div>
+    </div>
+  </form>
+</AdminLayout>
+

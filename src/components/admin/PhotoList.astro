@@ -1,0 +1,301 @@
+---
+/**
+ * The photos of an activity: upload new ones, pick from the photos that ship with the site,
+ * write captions, change the order. Each row posts `photo_src`, `photo_caption_en` and
+ * `photo_caption_ne`, in order.
+ */
+import Icon from '~/components/Icon.astro';
+import photoSizes from '~/data/photo-sizes.json';
+import { photoCaptions } from '~/data/photos';
+import { thumbUrl } from '~/lib/photos';
+import type { ActivityPhoto } from '~/lib/content';
+
+type Props = { photos: ActivityPhoto[] };
+const { photos } = Astro.props;
+
+const library = Object.keys(photoSizes)
+  .filter((slug) => slug in photoCaptions)
+  .map((slug) => ({ src: `photo:${slug}`, thumb: thumbUrl(`photo:${slug}`)!, caption: photoCaptions[slug] }));
+---
+
+<div class="photo-list" data-photo-list>
+  <ol data-rows>
+    {
+      photos.map((p) => (
+        <li class="photo-row" data-row>
+          <img src={thumbUrl(p.src) ?? ''} alt="" width="120" height="80" loading="lazy" />
+          <input type="hidden" name="photo_src" value={p.src} />
+          <div class="captions">
+            <input name="photo_caption_en" value={p.caption_en} maxlength="300" placeholder="Caption in English" aria-label="Caption (English)" />
+            <input name="photo_caption_ne" value={p.caption_ne} maxlength="300" placeholder="नेपालीमा क्याप्सन" lang="ne" aria-label="Caption (Nepali)" />
+          </div>
+          <div class="row-actions">
+            <button class="btn-icon" type="button" data-move="-1" aria-label="Move up"><Icon name="arrow-up" size={16} /></button>
+            <button class="btn-icon" type="button" data-move="1" aria-label="Move down"><Icon name="arrow-down" size={16} /></button>
+            <button class="btn-icon" type="button" data-remove aria-label="Remove photo"><Icon name="x" size={16} /></button>
+          </div>
+        </li>
+      ))
+    }
+  </ol>
+  <p class="empty-note hint" data-empty hidden={photos.length > 0}>No photos yet.</p>
+
+  <template data-row-template>
+    <li class="photo-row" data-row>
+      <img src="" alt="" width="120" height="80" />
+      <input type="hidden" name="photo_src" />
+      <div class="captions">
+        <input name="photo_caption_en" maxlength="300" placeholder="Caption in English" aria-label="Caption (English)" />
+        <input name="photo_caption_ne" maxlength="300" placeholder="नेपालीमा क्याप्सन" lang="ne" aria-label="Caption (Nepali)" />
+      </div>
+      <div class="row-actions">
+        <button class="btn-icon" type="button" data-move="-1" aria-label="Move up"><Icon name="arrow-up" size={16} /></button>
+        <button class="btn-icon" type="button" data-move="1" aria-label="Move down"><Icon name="arrow-down" size={16} /></button>
+        <button class="btn-icon" type="button" data-remove aria-label="Remove photo"><Icon name="x" size={16} /></button>
+      </div>
+    </li>
+  </template>
+
+  <div class="add">
+    <label class="btn btn-outline btn-sm upload-btn">
+      <Icon name="image-plus" size={16} />
+      <span>Upload photos</span>
+      <input type="file" accept="image/*" multiple data-upload />
+    </label>
+    <details class="library">
+      <summary class="btn btn-outline btn-sm">Choose from the website’s photos</summary>
+      <div class="library-grid">
+        {
+          library.map((p) => (
+            <button type="button" data-pick={p.src} data-thumb={p.thumb} data-caption-en={p.caption.en} data-caption-ne={p.caption.ne} title={p.caption.en}>
+              <img src={p.thumb} alt={p.caption.en} loading="lazy" width="120" height="80" />
+            </button>
+          ))
+        }
+      </div>
+    </details>
+  </div>
+  <p class="status" data-status aria-live="polite"></p>
+</div>
+
+<script>
+  import { uploadPhoto } from '~/scripts/image-upload';
+
+  document.querySelectorAll<HTMLElement>('[data-photo-list]').forEach((box) => {
+    const list = box.querySelector<HTMLOListElement>('[data-rows]')!;
+    const template = box.querySelector<HTMLTemplateElement>('[data-row-template]')!;
+    const status = box.querySelector<HTMLElement>('[data-status]')!;
+    const empty = box.querySelector<HTMLElement>('[data-empty]')!;
+    const form = box.closest('form');
+    // Lets the page warn about unsaved changes.
+    const changed = () => {
+      empty.hidden = list.children.length > 0;
+      form?.dispatchEvent(new Event('change'));
+    };
+
+    const addRow = (src: string, thumb: string, en = '', ne = '') => {
+      const row = template.content.firstElementChild!.cloneNode(true) as HTMLLIElement;
+      row.querySelector('img')!.src = thumb;
+      row.querySelector<HTMLInputElement>('[name="photo_src"]')!.value = src;
+      row.querySelector<HTMLInputElement>('[name="photo_caption_en"]')!.value = en;
+      row.querySelector<HTMLInputElement>('[name="photo_caption_ne"]')!.value = ne;
+      list.append(row);
+      changed();
+      return row;
+    };
+
+    list.addEventListener('click', (e) => {
+      const button = (e.target as HTMLElement).closest('button');
+      const row = button?.closest<HTMLElement>('[data-row]');
+      if (!button || !row) return;
+      if (button.hasAttribute('data-remove')) {
+        row.remove();
+      } else if (button.dataset.move === '-1' && row.previousElementSibling) {
+        row.previousElementSibling.before(row);
+        button.focus();
+      } else if (button.dataset.move === '1' && row.nextElementSibling) {
+        row.nextElementSibling.after(row);
+        button.focus();
+      }
+      changed();
+    });
+
+    box.querySelectorAll<HTMLButtonElement>('[data-pick]').forEach((b) =>
+      b.addEventListener('click', () => {
+        const src = b.dataset.pick!;
+        const already = [...list.querySelectorAll<HTMLInputElement>('[name="photo_src"]')].some((i) => i.value === src);
+        if (already) {
+          status.textContent = 'That photo is already in the list.';
+          return;
+        }
+        addRow(src, b.dataset.thumb!, b.dataset.captionEn, b.dataset.captionNe);
+        status.textContent = 'Photo added. Remember to save.';
+      }),
+    );
+
+    const input = box.querySelector<HTMLInputElement>('[data-upload]')!;
+    input.addEventListener('change', async () => {
+      const files = [...(input.files ?? [])];
+      input.value = '';
+      let done = 0;
+      const problems: string[] = [];
+      for (const file of files) {
+        status.textContent = `Uploading ${done + 1} of ${files.length}…`;
+        try {
+          const photo = await uploadPhoto(file);
+          addRow(`media:${photo.id}`, photo.small);
+          done++;
+        } catch (err) {
+          problems.push((err as Error).message);
+        }
+      }
+      status.textContent = [done ? `${done} photo${done === 1 ? '' : 's'} uploaded. Add captions, then save.` : '', ...problems]
+        .filter(Boolean)
+        .join(' ');
+    });
+  });
+</script>
+
+<style>
+  .photo-list {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  ol {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: photo;
+  }
+
+  .photo-row {
+    display: grid;
+    grid-template-columns: 120px minmax(0, 1fr) auto;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.5rem;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #fafbf8;
+  }
+
+  .photo-row img {
+    width: 120px;
+    height: 80px;
+    border-radius: 8px;
+    object-fit: cover;
+    background: var(--green-100);
+  }
+
+  /* The first photo is the large one on the website. */
+  .photo-row:first-child {
+    border-color: var(--green-300);
+    background: var(--green-50);
+  }
+
+  .captions {
+    display: grid;
+    gap: 0.4rem;
+  }
+
+  .row-actions {
+    display: flex;
+    gap: 0.3rem;
+  }
+
+  .photo-row:first-child [data-move='-1'],
+  .photo-row:last-child [data-move='1'] {
+    visibility: hidden;
+  }
+
+  .add {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    align-items: flex-start;
+  }
+
+  .upload-btn {
+    position: relative;
+    cursor: pointer;
+  }
+
+  .upload-btn input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  .upload-btn:focus-within {
+    outline: 3px solid var(--blue);
+    outline-offset: 2px;
+  }
+
+  .library {
+    flex: 1 1 100%;
+  }
+
+  .library summary {
+    width: fit-content;
+    list-style: none;
+    cursor: pointer;
+  }
+
+  .library summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .library-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+  }
+
+  .library-grid button {
+    padding: 0;
+    border: 2px solid transparent;
+    border-radius: 10px;
+    background: none;
+    overflow: hidden;
+  }
+
+  .library-grid button:hover,
+  .library-grid button:focus-visible {
+    border-color: var(--green);
+  }
+
+  .library-grid img {
+    display: block;
+    width: 100%;
+    height: 74px;
+    object-fit: cover;
+  }
+
+  .status {
+    margin: 0;
+    min-height: 1.4em;
+    font-weight: 600;
+    color: var(--green-800);
+  }
+
+  @media (max-width: 640px) {
+    .photo-row {
+      grid-template-columns: 88px minmax(0, 1fr);
+    }
+
+    .photo-row img {
+      width: 88px;
+      height: 64px;
+    }
+
+    .row-actions {
+      grid-column: 1 / -1;
+      justify-content: flex-end;
+    }
+  }
+</style>

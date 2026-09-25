@@ -25,7 +25,6 @@ const t = useTranslations(Astro.props.lang);
   const dialog = document.querySelector<HTMLDialogElement>('[data-lightbox-dialog]');
   if (dialog) {
     const img = dialog.querySelector<HTMLImageElement>('[data-lightbox-img]')!;
-    const spinner = dialog.querySelector<HTMLElement>('[data-lightbox-spinner]')!;
     const caption = dialog.querySelector<HTMLElement>('[data-lightbox-caption]')!;
     const count = dialog.querySelector<HTMLElement>('[data-lightbox-count]')!;
     const prev = dialog.querySelector<HTMLButtonElement>('[data-lightbox-prev]')!;

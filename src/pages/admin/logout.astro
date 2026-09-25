@@ -1,0 +1,12 @@
+---
+import { requestActor } from '~/lib/audit';
+import { signOut } from '~/lib/auth';
+
+export const prerender = false;
+
+// Sign-out is a form post (never a link), so another site can't sign people out.
+if (Astro.request.method !== 'POST') return Astro.redirect('/admin', 303);
+const access = Astro.locals.access!;
+await signOut(Astro.cookies, access, requestActor(Astro, access.admin?.email ?? null));
+return Astro.redirect('/admin/login?signed-out=1', 303);
+---

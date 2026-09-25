@@ -1,0 +1,263 @@
+---
+import AdminLayout from '~/layouts/AdminLayout.astro';
+import Icon from '~/components/Icon.astro';
+import { requestActor } from '~/lib/audit';
+import { formatAgo, formatWhen } from '~/lib/admin-format';
+import { createLink, normalizeEmail, type AdminRole } from '~/lib/auth';
+import { emailProblem, inviteUser, listUsers, removeUser, resetTwoFactor, setDisabled, setRole, userExists } from '~/lib/users';
+
+export const prerender = false;
+
+// Only the owner reaches this page (see middleware).
+const me = Astro.locals.admin!;
+let error = '';
+let done = '';
+/** A one-time link to hand over, shown once. */
+let link: { email: string; url: string; purpose: 'invite' | 'reset' } | null = null;
+let draft = { email: '', name: '', role: 'editor' as AdminRole };
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const actor = requestActor(Astro, me.email);
+  const action = String(form.get('_action') ?? '');
+  const email = normalizeEmail(form.get('email'));
+  const absolute = (path: string) => new URL(path, Astro.url.origin).href;
+
+  if (action !== 'invite' && !(await userExists(email))) {
+    error = 'That account no longer exists.';
+  } else if (action === 'invite') {
+    draft = { email, name: String(form.get('name') ?? '').trim().slice(0, 80), role: form.get('role') === 'owner' ? 'owner' : 'editor' };
+    error = emailProblem(email) ?? '';
+    if (!error) {
+      const result = await inviteUser(actor, email, draft.role, draft.name);
+      if ('error' in result) error = result.error!;
+      else {
+        link = { email, url: absolute(result.link!), purpose: 'invite' };
+        draft = { email: '', name: '', role: 'editor' };
+      }
+    }
+  } else if (action === 'reinvite') {
+    link = { email, url: absolute(await createLink(actor, email, 'invite')), purpose: 'invite' };
+  } else if (action === 'reset-password') {
+    link = { email, url: absolute(await createLink(actor, email, 'reset')), purpose: 'reset' };
+  } else if (action === 'reset-2fa') {
+    await resetTwoFactor(actor, email);
+    done = `${email} will set up their authenticator app again at next sign-in.`;
+  } else if (action === 'role') {
+    error = (await setRole(actor, email, form.get('role') === 'owner' ? 'owner' : 'editor')) ?? '';
+    if (!error) done = `Role changed for ${email}.`;
+  } else if (action === 'disable' || action === 'enable') {
+    error = (await setDisabled(actor, email, action === 'disable')) ?? '';
+    if (!error) done = action === 'disable' ? `${email} can no longer sign in.` : `${email} can sign in again.`;
+  } else if (action === 'remove') {
+    error = (await removeUser(actor, email)) ?? '';
+    if (!error) done = `Invitation for ${email} withdrawn.`;
+  }
+}
+
+const users = await listUsers();
+const flash = error ? { text: error, error: true } : done ? { text: done } : null;
+---
+
+<AdminLayout title="Staff accounts" wide flash={flash}>
+  {
+    link && (
+      <section class="panel link-box" role="status">
+        <h2>
+          <Icon name="link" size={20} /> {link.purpose === 'invite' ? `Invitation for ${link.email}` : `Password reset link for ${link.email}`}
+        </h2>
+        <p>
+          Send this link to them yourself (Viber, WhatsApp or email). It works once and expires in
+          {link.purpose === 'invite' ? ' 7 days' : ' 24 hours'}. It is not shown again.
+        </p>
+        <div class="copy-row">
+          <input readonly value={link.url} aria-label="Link" data-link />
+          <button class="btn btn-primary btn-sm" type="button" data-copy-link><Icon name="copy" size={16} /> <span>Copy</span></button>
+        </div>
+      </section>
+    )
+  }
+
+  <section class="panel">
+    <h2>People</h2>
+    <div class="table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Person</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Last sign-in</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {
+            users.map((u) => {
+              const self = u.email === me.email;
+              const status = u.disabled
+                ? ['Turned off', 'tag-grey']
+                : !u.has_password
+                  ? [u.invite_expires_at ? 'Invited' : 'Invitation expired', 'tag-amber']
+                  : !u.totp_enabled
+                    ? ['Setting up', 'tag-blue']
+                    : ['Active', 'tag-green'];
+              return (
+                <tr>
+                  <td>
+                    <strong>{u.name || '—'}</strong>
+                    {self && <span class="tag tag-blue">You</span>}
+                    <span class="sub">{u.email}</span>
+                  </td>
+                  <td>
+                    {self ? (
+                      u.role === 'owner' ? 'Owner' : 'Editor'
+                    ) : (
+                      <form method="post" class="inline-role">
+                        <input type="hidden" name="_action" value="role" />
+                        <input type="hidden" name="email" value={u.email} />
+                        <select name="role" aria-label={`Role for ${u.email}`} onchange="this.form.requestSubmit()">
+                          <option value="editor" selected={u.role === 'editor'}>Editor</option>
+                          <option value="owner" selected={u.role === 'owner'}>Owner</option>
+                        </select>
+                        <noscript><button class="btn btn-outline btn-sm" type="submit">Change</button></noscript>
+                      </form>
+                    )}
+                  </td>
+                  <td>
+                    <span class:list={['tag', status[1]]}>{status[0]}</span>
+                    {u.invite_expires_at && !u.has_password && <span class="sub">link valid until {formatWhen(u.invite_expires_at)}</span>}
+                  </td>
+                  <td class="nowrap">{u.last_sign_in_at ? formatAgo(u.last_sign_in_at) : 'Never'}</td>
+                  <td>
+                    {!self && (
+                      <form method="post" class="actions">
+                        <input type="hidden" name="email" value={u.email} />
+                        {!u.has_password ? (
+                          <>
+                            <button class="btn btn-outline btn-sm" type="submit" name="_action" value="reinvite">New invitation link</button>
+                            <button class="btn btn-danger btn-sm" type="submit" name="_action" value="remove" data-confirm={`Withdraw the invitation for ${u.email}?`}>
+                              Withdraw
+                            </button>
+                          </>
+                        ) : u.disabled ? (
+                          <button class="btn btn-outline btn-sm" type="submit" name="_action" value="enable">Turn on</button>
+                        ) : (
+                          <>
+                            <button class="btn btn-outline btn-sm" type="submit" name="_action" value="reset-password">Reset password</button>
+                            {u.totp_enabled && (
+                              <button class="btn btn-outline btn-sm" type="submit" name="_action" value="reset-2fa" data-confirm={`Reset the authenticator for ${u.email}? They will scan a new QR code at next sign-in.`}>
+                                Reset authenticator
+                              </button>
+                            )}
+                            <button class="btn btn-danger btn-sm" type="submit" name="_action" value="disable" data-confirm={`Turn off ${u.email}? They are signed out at once.`}>
+                              Turn off
+                            </button>
+                          </>
+                        )}
+                      </form>
+                    )}
+                  </td>
+                </tr>
+              );
+            })
+          }
+        </tbody>
+      </table>
+    </div>
+    <p class="hint">
+      <strong>Editors</strong> can do everything except manage accounts and read the activity log. <strong>Owners</strong> can do
+      everything. Turned-off accounts stay in the list so the activity log keeps their name.
+    </p>
+  </section>
+
+  <section class="panel" id="invite">
+    <h2>Invite someone</h2>
+    <form method="post" class="invite">
+      <input type="hidden" name="_action" value="invite" />
+      <div class="field">
+        <label for="inv-email">Email</label>
+        <input id="inv-email" name="email" type="email" required value={draft.email} />
+      </div>
+      <div class="field">
+        <label for="inv-name">Name <span class="opt">(optional)</span></label>
+        <input id="inv-name" name="name" value={draft.name} maxlength="80" />
+      </div>
+      <div class="field">
+        <label for="inv-role">Role</label>
+        <select id="inv-role" name="role">
+          <option value="editor" selected={draft.role === 'editor'}>Editor</option>
+          <option value="owner" selected={draft.role === 'owner'}>Owner</option>
+        </select>
+      </div>
+      <div class="field">
+        <span class="field-label" aria-hidden="true">&nbsp;</span>
+        <button class="btn btn-primary" type="submit"><Icon name="user-round-plus" size={18} /> Create invitation link</button>
+      </div>
+    </form>
+    <p class="hint">No email is sent: you get a link to pass on. They choose their own password and connect an authenticator app.</p>
+  </section>
+</AdminLayout>
+
+<script>
+  const copy = document.querySelector<HTMLButtonElement>('[data-copy-link]');
+  copy?.addEventListener('click', async () => {
+    const input = document.querySelector<HTMLInputElement>('[data-link]')!;
+    try {
+      await navigator.clipboard.writeText(input.value);
+      copy.querySelector('span')!.textContent = 'Copied';
+    } catch {
+      input.select();
+    }
+  });
+</script>
+
+<style>
+  .link-box {
+    border-color: var(--green-300);
+    background: var(--green-50);
+  }
+
+  .link-box h2 {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .copy-row {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .copy-row input {
+    font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+    font-size: 0.88rem;
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .inline-role select {
+    min-height: 38px !important;
+    width: auto !important;
+    padding: 0.3rem 0.6rem !important;
+  }
+
+  .invite {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+    gap: 1rem;
+    align-items: end;
+  }
+
+  .tag {
+    margin-left: 0.35rem;
+  }
+
+  td > .tag:first-child {
+    margin-left: 0;
+  }
+</style>

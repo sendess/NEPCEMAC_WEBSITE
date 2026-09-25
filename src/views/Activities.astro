@@ -4,15 +4,17 @@ import Icon from '~/components/Icon.astro';
 import Gallery from '~/components/Gallery.astro';
 import PageHero from '~/components/PageHero.astro';
 import SectionHead from '~/components/SectionHead.astro';
-import { activities, type Activity } from '~/data/activities';
-import { caption } from '~/data/photos';
-import { org } from '~/data/site';
+import { getActivities, getContact, type SiteActivity as Activity } from '~/lib/site-data';
+import { paragraphs } from '~/lib/forms';
 import { formatDate, formatDigits, tr, useTranslations, type Lang } from '~/i18n/utils';
 import NepaliDateModule from 'nepali-date-converter';
 
 type Props = { lang: Lang };
 const { lang } = Astro.props;
 const t = useTranslations(lang);
+
+const activities = await getActivities();
+const contact = await getContact();
 
 const NepaliDate = ((NepaliDateModule as unknown as { default?: typeof NepaliDateModule }).default ?? NepaliDateModule) as typeof NepaliDateModule;
 
@@ -53,7 +55,7 @@ const kinds = (Object.keys(kindIcon) as Activity['kind'][])
 <BaseLayout title={t('activities.title')} description={t('activities.lead')}>
   <PageHero eyebrow={t('nav.activities')} title={t('activities.title')} lead={t('activities.lead')}>
     <p>
-      <a class="btn btn-outline btn-sm" href={org.facebook} target="_blank" rel="noopener">
+      <a class="btn btn-outline btn-sm" href={contact.facebook} target="_blank" rel="noopener">
         <Icon name="facebook" size={18} />
         {t('cta.facebook')}
       </a>
@@ -99,10 +101,10 @@ const kinds = (Object.keys(kindIcon) as Activity['kind'][])
                           </time>
                         </p>
                         <h3>{tr(a.title, lang)}</h3>
-                        {a.text.map((p) => (
-                          <p>{tr(p, lang)}</p>
+                        {paragraphs(tr(a.body, lang)).map((lines) => (
+                          <p>{lines.map((line, i) => (i > 0 ? [<br />, line] : line))}</p>
                         ))}
-                        {a.facts && (
+                        {a.facts.length > 0 && (
                           <dl class="facts">
                             {a.facts.map((f) => (
                               <div>
@@ -115,7 +117,7 @@ const kinds = (Object.keys(kindIcon) as Activity['kind'][])
                       </div>
                       {a.photos.length > 0 && (
                         <div class="entry-photos">
-                          <Gallery group={a.id} photos={a.photos.map((slug) => ({ slug, alt: caption(slug, lang) }))} lang={lang} />
+                          <Gallery group={a.id} photos={a.photos.map((p) => ({ slug: p.ref, alt: tr(p.alt, lang) }))} lang={lang} />
                           {a.photoNote && <p class="small muted note">{tr(a.photoNote, lang)}</p>}
                         </div>
                       )}
@@ -130,6 +132,7 @@ const kinds = (Object.keys(kindIcon) as Activity['kind'][])
     </div>
   </section>
 
+  {undated.length > 0 && (
   <section class="section" data-group>
     <div class="container">
       <SectionHead title={t('activities.undated')} intro={t('activities.undatedIntro')} />
@@ -137,11 +140,13 @@ const kinds = (Object.keys(kindIcon) as Activity['kind'][])
         {
           undated.map((a) => (
             <li class="card archive-card" id={a.id} data-kind={a.kind}>
-              <Gallery group={a.id} photos={a.photos.map((slug) => ({ slug, alt: caption(slug, lang) }))} lang={lang} />
+              {a.photos.length > 0 && (
+                <Gallery group={a.id} photos={a.photos.map((p) => ({ slug: p.ref, alt: tr(p.alt, lang) }))} lang={lang} />
+              )}
               <div class="archive-text">
                 <h3>{tr(a.title, lang)}</h3>
-                {a.text.map((p) => (
-                  <p class="muted">{tr(p, lang)}</p>
+                {paragraphs(tr(a.body, lang)).map((lines) => (
+                  <p class="muted">{lines.join(' ')}</p>
                 ))}
               </div>
             </li>
@@ -150,6 +155,7 @@ const kinds = (Object.keys(kindIcon) as Activity['kind'][])
       </ul>
     </div>
   </section>
+  )}
 </BaseLayout>
 
 <script>

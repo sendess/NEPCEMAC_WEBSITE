@@ -2,11 +2,13 @@
 import Icon from './Icon.astro';
 import { circle, nav, org } from '~/data/site';
 import { formatDigits, localizePath, telHref, tr, useTranslations, type Lang } from '~/i18n/utils';
+import { getContact } from '~/lib/site-data';
 
 type Props = { lang: Lang };
 const { lang } = Astro.props;
 const t = useTranslations(lang);
 const year = new Date().getFullYear();
+const contact = await getContact();
 ---
 
 <footer class="site-footer">
@@ -18,7 +20,7 @@ const year = new Date().getFullYear();
       <p class="legal-name">{tr(org.legalName, lang)}</p>
       <p>{t('footer.about')}</p>
       <div class="social">
-        <a href={org.facebook} target="_blank" rel="noopener" aria-label={`${t('common.facebook')} ${t('common.opensNewTab')}`}>
+        <a href={contact.facebook} target="_blank" rel="noopener" aria-label={`${t('common.facebook')} ${t('common.opensNewTab')}`}>
           <Icon name="facebook" size={20} />
         </a>
         <a href={`https://www.youtube.com/watch?v=${org.documentaryId}`} target="_blank" rel="noopener" aria-label={`YouTube ${t('common.opensNewTab')}`}>
@@ -44,11 +46,11 @@ const year = new Date().getFullYear();
     <div>
       <h2>{t('footer.contact')}</h2>
       <ul class="contact">
-        <li><Icon name="map-pin" size={18} /><span>{tr(org.address, lang)}</span></li>
+        <li><Icon name="map-pin" size={18} /><span>{tr(contact.address, lang)}</span></li>
         <li>
           <Icon name="phone" size={18} />
           <span>
-            {org.phones.map((p, i) => (
+            {contact.phones.map((p, i) => (
               <>
                 {i > 0 && ', '}
                 <a href={telHref(p)}>{formatDigits(p, lang)}</a>
@@ -56,8 +58,8 @@ const year = new Date().getFullYear();
             ))}
           </span>
         </li>
-        <li><Icon name="mail" size={18} /><a href={`mailto:${org.email}`}>{org.email}</a></li>
-        <li><Icon name="clock" size={18} /><span>{tr(org.hours, lang)}</span></li>
+        <li><Icon name="mail" size={18} /><a href={`mailto:${contact.email}`}>{contact.email}</a></li>
+        <li><Icon name="clock" size={18} /><span>{tr(contact.hours, lang)}</span></li>
       </ul>
     </div>
 

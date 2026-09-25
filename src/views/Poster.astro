@@ -6,6 +6,7 @@ import PageHero from '~/components/PageHero.astro';
 import { bins, sortItems, type Bin } from '~/data/sorting';
 import { org } from '~/data/site';
 import { formatDigits, localizePath, useTranslations, type Lang, type L } from '~/i18n/utils';
+import { getContact } from '~/lib/site-data';
 
 type Props = { lang: Lang };
 const { lang } = Astro.props;
@@ -19,6 +20,7 @@ const tips: L[] = [
   { ne: 'कागज र कार्टुन सुक्खा राख्नुहोस्', en: 'Keep paper and cardboard dry' },
   { ne: 'फुटेको सिसा र प्याड बेरेर मात्र', en: 'Wrap broken glass and pads' },
 ];
+const contact = await getContact();
 ---
 
 <BaseLayout title={t('poster.title')} description={t('poster.lead')}>
@@ -107,7 +109,7 @@ const tips: L[] = [
       <footer class="p-foot">
         <span>{org.motto.ne} · <span lang="en">{org.motto.en}</span></span>
         <span>
-          {org.name.ne} (NEPCEMAC) · nepcemac.org.np · {formatDigits(org.phones[0], 'ne')}
+          {org.name.ne} (NEPCEMAC) · nepcemac.org.np · {formatDigits(contact.phones[0], 'ne')}
         </span>
       </footer>
     </article>

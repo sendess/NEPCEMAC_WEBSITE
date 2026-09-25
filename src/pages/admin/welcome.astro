@@ -1,0 +1,68 @@
+---
+// One-time link from the owner: accept an invitation, or choose a new password after a reset.
+import AuthLayout from '~/layouts/AuthLayout.astro';
+import { requestActor } from '~/lib/audit';
+import { findLink, useLink } from '~/lib/auth';
+import { PASSWORD_MIN_LENGTH, passwordProblem } from '~/lib/tokens';
+
+export const prerender = false;
+
+const token = (Astro.url.searchParams.get('token') ?? '').slice(0, 100);
+const link = await findLink(token);
+if (!link) return Astro.redirect('/admin/login?link-used=1', 303);
+
+let error = '';
+let name = link.name;
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  name = String(form.get('name') ?? link.name).trim().slice(0, 80);
+  const password = String(form.get('password') ?? '');
+  const repeat = String(form.get('repeat') ?? '');
+  error =
+    link.purpose === 'invite' && !name
+      ? 'Please write your name.'
+      : password !== repeat
+        ? 'The two passwords are not the same.'
+        : (passwordProblem(password, link.email) ?? '');
+  if (!error) {
+    const ok = await useLink(Astro.cookies, requestActor(Astro, link.email), token, link, name, password);
+    // Signed in: the middleware now sends them to set up (or enter) their authenticator code.
+    if (ok) return Astro.redirect('/admin', 303);
+    return Astro.redirect('/admin/login?link-used=1', 303);
+  }
+}
+
+// The address bar holds the token; don't pass it on to other sites.
+Astro.response.headers.set('Referrer-Policy', 'no-referrer');
+const invite = link.purpose === 'invite';
+---
+
+<AuthLayout title={invite ? 'Welcome to the NEPCEMAC admin panel' : 'Choose a new password'} flash={error ? { text: error, error: true } : null}>
+  <p>
+    {invite ? 'You have been invited as ' : 'New password for '}
+    <strong>{link.email}</strong>{invite && <> ({link.role === 'owner' ? 'owner' : 'editor'})</>}.
+    {invite && ' Choose a password; next you will connect an authenticator app on your phone.'}
+  </p>
+  <form method="post">
+    <input type="hidden" name="email" value={link.email} autocomplete="username" />
+    {
+      invite && (
+        <div class="field">
+          <label for="name">Your name</label>
+          <input id="name" name="name" autocomplete="name" required value={name} maxlength="80" />
+        </div>
+      )
+    }
+    <div class="field">
+      <label for="password">New password</label>
+      <input id="password" name="password" type="password" autocomplete="new-password" required minlength={PASSWORD_MIN_LENGTH} />
+      <p class="hint">At least {PASSWORD_MIN_LENGTH} characters. A few unrelated words work well.</p>
+    </div>
+    <div class="field">
+      <label for="repeat">Type it again</label>
+      <input id="repeat" name="repeat" type="password" autocomplete="new-password" required />
+    </div>
+    <button class="btn btn-primary" type="submit">{invite ? 'Create my account' : 'Save new password'}</button>
+  </form>
+</AuthLayout>

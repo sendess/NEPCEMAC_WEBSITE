@@ -3,11 +3,11 @@
 // 1 photo fills it; 2 photos = large + side; 3+ = large + two stacked, the last one showing "+N" for the rest.
 import Photo from './Photo.astro';
 import Icon from './Icon.astro';
-import { largestPhoto } from '~/lib/photos';
+import { largestPhoto, type PhotoRef } from '~/lib/photos';
 import { fill } from '~/i18n/ui';
 import { formatDigits, useTranslations, type Lang } from '~/i18n/utils';
 
-type Props = { group: string; photos: { slug: string; alt: string }[]; lang: Lang };
+type Props = { group: string; photos: { slug: PhotoRef; alt: string }[]; lang: Lang };
 const { group, photos, lang } = Astro.props;
 const t = useTranslations(lang);
 

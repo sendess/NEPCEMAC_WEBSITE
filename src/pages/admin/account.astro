@@ -1,0 +1,145 @@
+---
+import AdminLayout from '~/layouts/AdminLayout.astro';
+import RecoveryCodes from '~/components/admin/RecoveryCodes.astro';
+import { requestActor } from '~/lib/audit';
+import { recoveryCodesLeft, replaceRecoveryCodes } from '~/lib/auth';
+import { PASSWORD_MIN_LENGTH } from '~/lib/tokens';
+import { changePassword, renameSelf, signOutOtherDevices } from '~/lib/users';
+
+export const prerender = false;
+
+const me = Astro.locals.admin!;
+const access = Astro.locals.access!;
+let error = '';
+let done = '';
+let newCodes: string[] | null = null;
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const actor = requestActor(Astro, me.email);
+  const action = String(form.get('_action') ?? '');
+  if (action === 'name') {
+    const name = String(form.get('name') ?? '').trim().slice(0, 80);
+    if (name) {
+      await renameSelf(me.email, name);
+      return Astro.redirect('/admin/account?saved=name', 303);
+    }
+    error = 'Please write your name.';
+  } else if (action === 'password') {
+    const next = String(form.get('new') ?? '');
+    if (next !== String(form.get('repeat') ?? '')) error = 'The two new passwords are not the same.';
+    else error = (await changePassword(actor, me.email, String(form.get('current') ?? ''), next, access.tokenHash)) ?? '';
+    if (!error) done = 'Password changed. Other devices have been signed out.';
+  } else if (action === 'codes') {
+    newCodes = await replaceRecoveryCodes(actor, me.email);
+  } else if (action === 'others') {
+    await signOutOtherDevices(actor, me.email, access.tokenHash);
+    done = 'Signed out on all other devices.';
+  }
+}
+
+const left = await recoveryCodesLeft(me.email);
+const lowFromSignIn = Astro.url.searchParams.get('recovery-left');
+const flash = error
+  ? { text: error, error: true }
+  : done
+    ? { text: done }
+    : Astro.url.searchParams.get('saved') === 'name'
+      ? { text: 'Name saved.' }
+      : lowFromSignIn !== null
+        ? { text: `You have ${lowFromSignIn} recovery code${lowFromSignIn === '1' ? '' : 's'} left. Make new ones below and keep them safe.`, error: true }
+        : null;
+---
+
+<AdminLayout title="My account" flash={flash}>
+  <section class="panel">
+    <h2>Name</h2>
+    <form method="post" class="inline">
+      <input type="hidden" name="_action" value="name" />
+      <div class="field">
+        <label for="name">Shown in the activity log and on notes</label>
+        <input id="name" name="name" value={me.name} maxlength="80" required />
+      </div>
+      <button class="btn btn-outline btn-sm" type="submit">Save</button>
+    </form>
+    <p class="hint">Signed in as <strong>{me.email}</strong> ({me.role === 'owner' ? 'owner' : 'editor'}).</p>
+  </section>
+
+  <section class="panel">
+    <h2>Change password</h2>
+    <form method="post" class="grid">
+      <input type="hidden" name="_action" value="password" />
+      <input type="hidden" name="email" value={me.email} autocomplete="username" />
+      <div class="field">
+        <label for="current">Current password</label>
+        <input id="current" name="current" type="password" autocomplete="current-password" required />
+      </div>
+      <div class="field">
+        <label for="new">New password</label>
+        <input id="new" name="new" type="password" autocomplete="new-password" minlength={PASSWORD_MIN_LENGTH} required />
+      </div>
+      <div class="field">
+        <label for="repeat">New password again</label>
+        <input id="repeat" name="repeat" type="password" autocomplete="new-password" required />
+      </div>
+      <div><button class="btn btn-primary btn-sm" type="submit">Change password</button></div>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2>Recovery codes</h2>
+    {
+      newCodes ? (
+        <>
+          <p>Your new codes. The old ones no longer work. Save these now — they won’t be shown again.</p>
+          <RecoveryCodes codes={newCodes} />
+        </>
+      ) : (
+        <>
+          <p>
+            You have <strong>{left}</strong> unused recovery code{left === 1 ? '' : 's'}. Each lets you sign in once without your
+            phone.
+          </p>
+          <form method="post" data-confirm="Make new recovery codes? The old ones will stop working.">
+            <input type="hidden" name="_action" value="codes" />
+            <button class="btn btn-outline btn-sm" type="submit">Make new codes</button>
+          </form>
+        </>
+      )
+    }
+    <p class="hint">New phone? Ask the owner to reset your authenticator; you then scan a new QR code at the next sign-in.</p>
+  </section>
+
+  <section class="panel">
+    <h2>Other devices</h2>
+    <p>Signed in on a shared or lost computer? Sign out everywhere except here.</p>
+    <form method="post">
+      <input type="hidden" name="_action" value="others" />
+      <button class="btn btn-outline btn-sm" type="submit">Sign out other devices</button>
+    </form>
+  </section>
+</AdminLayout>
+
+<style>
+  .inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: end;
+  }
+
+  .inline .field {
+    flex: 1 1 16rem;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+    gap: 1rem;
+    align-items: end;
+  }
+
+  .panel p {
+    margin: 0;
+  }
+</style>

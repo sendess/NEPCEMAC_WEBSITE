@@ -1,0 +1,220 @@
+---
+import AdminLayout from '~/layouts/AdminLayout.astro';
+import Icon from '~/components/Icon.astro';
+import { requestActor } from '~/lib/audit';
+import { doneMessage, formatAgo, formatWhen } from '~/lib/admin-format';
+import {
+  addRequestNote,
+  getRequest,
+  REQUEST_STATUSES,
+  REQUEST_TYPES,
+  setRequestStatus,
+  STATUS_TAG,
+  type RequestStatus,
+} from '~/lib/requests';
+import { telHref } from '~/i18n/utils';
+
+export const prerender = false;
+
+const id = Astro.params.id ?? '';
+const found = await getRequest(id);
+if (!found) return new Response(null, { status: 404 });
+
+let error = '';
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const actor = requestActor(Astro, Astro.locals.admin!.email);
+  const action = String(form.get('_action') ?? '');
+  if (action === 'status') {
+    const status = String(form.get('status') ?? '') as RequestStatus;
+    if (status in REQUEST_STATUSES) {
+      await setRequestStatus(actor, id, status, found.request.ref);
+      return Astro.redirect(`/admin/requests/${id}?done=status`, 303);
+    }
+  } else if (action === 'note') {
+    const body = String(form.get('body') ?? '').trim().slice(0, 2000);
+    if (!body) error = 'Write something in the note first.';
+    else {
+      await addRequestNote(actor, id, body, found.request.ref);
+      return Astro.redirect(`/admin/requests/${id}?done=note#notes`, 303);
+    }
+  }
+}
+
+const { request: r, notes } = found;
+const flash = error ? { text: error, error: true } : doneMessage(Astro.url, { status: 'Status changed.', note: 'Note added.' });
+const details: [string, string | number | null][] = [
+  ['Organisation', r.org],
+  ['Area and ward', r.area],
+  ['Preferred date', r.preferred_date],
+  ['Number of people', r.people],
+  ['Sent in', r.lang === 'ne' ? 'Nepali' : 'English'],
+];
+const replySubject = `Your request to NEPCEMAC (${r.ref})`;
+---
+
+<AdminLayout title={`${r.ref} · ${r.name}`} flash={flash}>
+  <p class="back"><a href="/admin/requests"><Icon name="chevron-left" size={16} /> All requests</a></p>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>{REQUEST_TYPES[r.type]}</h2>
+        <p class="hint">Received {formatWhen(r.created_at)} ({formatAgo(r.created_at)})</p>
+      </div>
+      <span class:list={['tag', STATUS_TAG[r.status]]}>{REQUEST_STATUSES[r.status]}</span>
+    </div>
+
+    <div class="contact">
+      <p class="who"><Icon name="user-round" size={18} /> <strong>{r.name}</strong></p>
+      {
+        r.phone && (
+          <a class="btn btn-primary btn-sm" href={telHref(r.phone)}>
+            <Icon name="phone" size={16} /> Call {r.phone}
+          </a>
+        )
+      }
+      {
+        r.email && (
+          <a class="btn btn-outline btn-sm" href={`mailto:${r.email}?subject=${encodeURIComponent(replySubject)}`}>
+            <Icon name="mail" size={16} /> Email {r.email}
+          </a>
+        )
+      }
+    </div>
+
+    <dl class="details">
+      {
+        details
+          .filter(([, v]) => v !== null && v !== '')
+          .map(([k, v]) => (
+            <div>
+              <dt>{k}</dt>
+              <dd>{v}</dd>
+            </div>
+          ))
+      }
+    </dl>
+
+    {r.message ? <blockquote class="message" lang={r.lang}>{r.message}</blockquote> : <p class="hint">No message.</p>}
+  </section>
+
+  <section class="panel">
+    <h2>Status</h2>
+    <form method="post" class="status-row">
+      <input type="hidden" name="_action" value="status" />
+      {
+        (Object.keys(REQUEST_STATUSES) as RequestStatus[]).map((s) => (
+          <button class:list={['btn btn-sm', s === r.status ? 'btn-primary' : 'btn-outline']} type="submit" name="status" value={s} aria-pressed={s === r.status}>
+            {REQUEST_STATUSES[s]}
+          </button>
+        ))
+      }
+    </form>
+    <p class="hint">Mark it <strong>In progress</strong> when someone takes it on, and <strong>Done</strong> when it is settled.</p>
+  </section>
+
+  <section class="panel" id="notes">
+    <h2>Notes for the team</h2>
+    {
+      notes.length > 0 && (
+        <ol class="notes">
+          {notes.map((n) => (
+            <li>
+              <p class="note-body">{n.body}</p>
+              <p class="hint">
+                {n.author_name || n.author || 'Someone'} · {formatWhen(n.created_at)}
+              </p>
+            </li>
+          ))}
+        </ol>
+      )
+    }
+    <form method="post" class="note-form">
+      <input type="hidden" name="_action" value="note" />
+      <label class="field-label" for="note">Add a note</label>
+      <textarea id="note" name="body" rows="3" maxlength="2000" placeholder="e.g. Called on Sunday; programme fixed for 12 Kartik at the ward office."></textarea>
+      <div><button class="btn btn-outline btn-sm" type="submit"><Icon name="plus" size={16} /> Add note</button></div>
+    </form>
+    <p class="hint">Notes are seen only by staff. The person who sent the request never sees them.</p>
+  </section>
+</AdminLayout>
+
+<style>
+  .contact {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem 0.75rem;
+    align-items: center;
+  }
+
+  .who {
+    display: inline-flex;
+    gap: 0.4rem;
+    align-items: center;
+    margin: 0 0.5rem 0 0;
+    font-size: 1.1rem;
+  }
+
+  .details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+    gap: 0.75rem;
+    margin: 0;
+  }
+
+  .details div {
+    padding: 0.6rem 0.8rem;
+    border-radius: 10px;
+    background: #f7f8f5;
+  }
+
+  dt {
+    font-size: 0.82rem;
+    color: var(--muted);
+  }
+
+  dd {
+    margin: 0;
+    font-weight: 600;
+  }
+
+  .message {
+    margin: 0;
+    padding: 0.9rem 1.1rem;
+    border-left: 4px solid var(--green-300);
+    border-radius: 0 10px 10px 0;
+    background: var(--green-50);
+    white-space: pre-wrap;
+  }
+
+  .status-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .notes {
+    display: grid;
+    gap: 0.75rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .notes li {
+    padding: 0.75rem 0.9rem;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+
+  .note-body {
+    margin: 0 0 0.25rem;
+    white-space: pre-wrap;
+  }
+
+  .note-form {
+    display: grid;
+    gap: 0.5rem;
+  }
+</style>

@@ -18,7 +18,7 @@ const initials = person.name.en
 <article class:list={['person', highlight && 'is-highlight']}>
   {
     person.photo ? (
-      <img src={`/images/team/${person.photo}.webp`} width="360" height="360" alt={name} loading="lazy" decoding="async" />
+      <img src={person.photo.startsWith('/') ? person.photo : `/images/team/${person.photo}.webp`} width="360" height="360" alt={name} loading="lazy" decoding="async" />
     ) : (
       <span class="initials" aria-hidden="true">
         {initials}

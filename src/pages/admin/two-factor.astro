@@ -1,0 +1,75 @@
+---
+import { renderSVG } from 'uqr';
+import AuthLayout from '~/layouts/AuthLayout.astro';
+import RecoveryCodes from '~/components/admin/RecoveryCodes.astro';
+import { recentEvents, requestActor } from '~/lib/audit';
+import { LOCK_MINUTES, confirmTotpSetup, pendingTotpSecret } from '~/lib/auth';
+import { groupSecret, totpUri } from '~/lib/totp';
+
+export const prerender = false;
+
+// The middleware shows this page only to people whose password was accepted but who have no authenticator yet.
+const access = Astro.locals.access!;
+const email = access.admin!.email;
+let error = '';
+let recoveryCodes: string[] | null = null;
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const actor = requestActor(Astro, email);
+  if ((await recentEvents('code_failed', email, actor.ip, LOCK_MINUTES)).byEmailIp >= 5) {
+    error = `Too many wrong codes. Wait ${LOCK_MINUTES} minutes and try again.`;
+  } else {
+    recoveryCodes = await confirmTotpSetup(access, actor, String(form.get('code') ?? '').slice(0, 10));
+    if (!recoveryCodes) error = 'That code doesn’t match. Make sure the phone sets its time automatically, then try the newest code.';
+  }
+}
+
+const secret = recoveryCodes ? '' : await pendingTotpSecret(access);
+const qr = secret ? renderSVG(totpUri(secret, email), { border: 2, pixelSize: 6, ecc: 'M' }) : '';
+---
+
+<AuthLayout title={recoveryCodes ? 'Two-step sign-in is on' : 'Set up two-step sign-in'} wide flash={error ? { text: error, error: true } : null}>
+  {
+    recoveryCodes ? (
+      <>
+        <p>
+          Save these <strong>recovery codes</strong> somewhere safe — print them or keep them in a password manager. If you lose
+          your phone, each code lets you sign in once. They won’t be shown again.
+        </p>
+        <RecoveryCodes codes={recoveryCodes} />
+        <a class="btn btn-primary" href="/admin">
+          I’ve saved them — continue
+        </a>
+      </>
+    ) : (
+      <>
+        <p class="hint">Everyone who uses the admin panel signs in with a password and a code from their phone.</p>
+        <ol class="steps">
+          <li>
+            Install <strong>Google Authenticator</strong> or <strong>Microsoft Authenticator</strong> on your phone.
+          </li>
+          <li>In the app, add an account and scan this code:</li>
+        </ol>
+        <div class="qr" set:html={qr} />
+        <details>
+          <summary>Can’t scan? Type this key instead</summary>
+          <p class="secret">{groupSecret(secret)}</p>
+        </details>
+        <ol class="steps" start="3">
+          <li>Type the 6-digit code the app now shows for NEPCEMAC Admin.</li>
+        </ol>
+        <form method="post">
+          <div class="field">
+            <label for="code">Code from the app</label>
+            <input id="code" name="code" class="code-input" inputmode="numeric" autocomplete="one-time-code" maxlength="7" required />
+          </div>
+          <button class="btn btn-primary" type="submit">Turn on</button>
+        </form>
+        <form method="post" action="/admin/logout" data-no-busy>
+          <button class="btn btn-outline btn-sm" type="submit">Sign out</button>
+        </form>
+      </>
+    )
+  }
+</AuthLayout>

@@ -1,0 +1,104 @@
+---
+import AdminLayout from '~/layouts/AdminLayout.astro';
+import Icon from '~/components/Icon.astro';
+import { describeAction, requestActor } from '~/lib/audit';
+import { formatAgo, formatWhen } from '~/lib/admin-format';
+import { publish, publishState } from '~/lib/content';
+
+export const prerender = false;
+
+let result: { ok: boolean; message: string } | null = null;
+if (Astro.request.method === 'POST') {
+  const admin = Astro.locals.admin!;
+  result = await publish(requestActor(Astro, admin.email), admin.name || admin.email);
+  if (result.ok) return Astro.redirect('/admin/publish?done=1', 303);
+}
+
+const state = await publishState();
+const flash = result
+  ? { text: result.message, error: true }
+  : Astro.url.searchParams.has('done')
+    ? { text: 'Publishing started. The website shows your changes in about two minutes.' }
+    : null;
+const areas: Record<string, string> = { activities: 'Activity', notices: 'Notice', team_members: 'Team', site_settings: 'Settings' };
+---
+
+<AdminLayout title="Publish" flash={flash}>
+  <section class="panel publish">
+    <div>
+      <h2>{state.pending === 0 ? 'The website is up to date' : `${state.pending} change${state.pending === 1 ? '' : 's'} waiting to be published`}</h2>
+      <p class="hint">
+        {
+          state.last
+            ? `Last published ${formatAgo(state.last.at)}${state.last.by_email ? ` by ${state.last.by_email}` : ''}${state.last.ok ? '' : ' (that attempt failed)'}.`
+            : 'Nothing has been published from the admin panel yet.'
+        }
+      </p>
+    </div>
+    <form method="post">
+      <button class="btn btn-primary" type="submit" disabled={!state.configured}>
+        <Icon name="rocket" size={18} /> Publish now
+      </button>
+    </form>
+    {
+      !state.configured && (
+        <p class="flash info">Publishing is switched off here because this copy of the site has no Netlify build hook. On the live admin panel it works.</p>
+      )
+    }
+    <p class="hint">
+      Publishing rebuilds the public website with everything saved here. It takes about two minutes; until then visitors see the
+      previous version. Requests from the Contact form never need publishing.
+    </p>
+  </section>
+
+  {
+    state.recent.length > 0 && (
+      <section class="panel">
+        <h2>Saved since the last publish</h2>
+        <ul class="changes">
+          {state.recent.map((c) => (
+            <li>
+              <span>
+                <strong>{describeAction(c.action)}</strong> {areas[c.entity]?.toLowerCase()}: {c.label}
+              </span>
+              <span class="hint" title={formatWhen(c.at)}>
+                {c.actor_email} · {formatAgo(c.at)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+</AdminLayout>
+
+<style>
+  .publish {
+    justify-items: start;
+  }
+
+  .changes {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .changes li {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.25rem 1rem;
+    padding: 0.55rem 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .changes li:first-child {
+    border-top: 0;
+  }
+
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+</style>

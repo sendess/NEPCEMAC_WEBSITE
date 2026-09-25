@@ -1,0 +1,46 @@
+---
+/** Freshly created recovery codes, with copy and print buttons. They are never shown again. */
+import Icon from '~/components/Icon.astro';
+
+type Props = { codes: string[] };
+const { codes } = Astro.props;
+---
+
+<div class="recovery" data-recovery>
+  <ol class="codes">
+    {codes.map((code) => <li><code>{code}</code></li>)}
+  </ol>
+  <div class="btn-row">
+    <button class="btn btn-outline btn-sm" type="button" data-copy><Icon name="copy" size={16} /> <span>Copy codes</span></button>
+    <button class="btn btn-outline btn-sm" type="button" data-print><Icon name="printer" size={16} /> Print</button>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-recovery]').forEach((box) => {
+    const codes = [...box.querySelectorAll('code')].map((c) => c.textContent).join('\n');
+    const copy = box.querySelector<HTMLButtonElement>('[data-copy]')!;
+    copy.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(`NEPCEMAC admin recovery codes\n${codes}`).catch(() => null);
+      copy.querySelector('span')!.textContent = 'Copied';
+    });
+    box.querySelector('[data-print]')?.addEventListener('click', () => window.print());
+  });
+</script>
+
+<style>
+  .recovery {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .auth-card .recovery .btn {
+    width: auto;
+  }
+
+  @media print {
+    .btn-row {
+      display: none;
+    }
+  }
+</style>

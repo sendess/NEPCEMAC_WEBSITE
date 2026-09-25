@@ -1,0 +1,66 @@
+---
+import AdminLayout from '~/layouts/AdminLayout.astro';
+import Icon from '~/components/Icon.astro';
+import { doneMessage, formatAgo, formatDay } from '~/lib/admin-format';
+import { ACTIVITY_KINDS, listActivities } from '~/lib/content';
+import { thumbUrl } from '~/lib/photos';
+
+export const prerender = false;
+
+const rows = await listActivities();
+const flash = doneMessage(Astro.url, { deleted: 'Activity deleted. Publish to remove it from the website.' });
+
+---
+
+<AdminLayout title="Activities" wide flash={flash}>
+  <div class="toolbar">
+    <p class="hint">Campaigns, visits and trainings shown on the Activities page, newest first. The home page shows the latest three with photos.</p>
+    <a class="btn btn-primary btn-sm" href="/admin/activities/new"><Icon name="plus" size={16} /> Add activity</a>
+  </div>
+
+  <div class="table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th></th>
+          <th>Title</th>
+          <th>Date</th>
+          <th>Photos</th>
+          <th>Last edited</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          rows.map((a) => {
+            const src = thumbUrl(a.first_photo);
+            return (
+              <tr>
+                <td>{src ? <img class="thumb" src={src} alt="" loading="lazy" /> : <span class="thumb" />}</td>
+                <td>
+                  <a class="row-link" href={`/admin/activities/${a.id}`}>{a.title_en || a.title_ne}</a>
+                  <span class="sub">
+                    {ACTIVITY_KINDS[a.kind]}
+                    {!a.visible && (
+                      <>
+                        {' · '}
+                        <span class="tag tag-grey">
+                          <Icon name="eye-off" size={13} /> Hidden
+                        </span>
+                      </>
+                    )}
+                  </span>
+                </td>
+                <td class="nowrap">{formatDay(a.date, a.approx)}</td>
+                <td class="num">{a.photo_count}</td>
+                <td class="nowrap">
+                  {formatAgo(a.updated_at)}
+                  <span class="sub">{a.updated_by === 'seed' ? 'imported with the site' : a.updated_by}</span>
+                </td>
+              </tr>
+            );
+          })
+        }
+      </tbody>
+    </table>
+  </div>
+</AdminLayout>
