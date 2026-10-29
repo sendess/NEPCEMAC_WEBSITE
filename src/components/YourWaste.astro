@@ -1,0 +1,847 @@
+---
+// "How much does your home throw away?" — an estimate from the household size, and the two journeys
+// waste can take out of the door. The first render shows a 5-person home (works without JavaScript);
+// the script updates everything as people change the inputs.
+import Icon from './Icon.astro';
+import { householdWaste, journey, journeyCopy, wasteCopy } from '~/data/tools';
+import { estimateWaste, formatKg, numberLocale } from '~/lib/waste-calc';
+import { fill } from '~/i18n/ui';
+import { formatDigits, tr, type Lang } from '~/i18n/utils';
+
+type Props = { lang: Lang };
+const { lang } = Astro.props;
+const w = (k: keyof typeof wasteCopy) => tr(wasteCopy[k], lang);
+const j = (k: keyof typeof journeyCopy) => tr(journeyCopy[k], lang);
+const locale = numberLocale(lang);
+const kg = (n: number) => formatKg(n, locale);
+const d = (n: number) => formatDigits(n, lang);
+
+const PEOPLE = 5;
+const { share, nepalGrams, kathmanduGrams } = householdWaste;
+const e = estimateWaste({ people: PEOPLE, grams: nepalGrams, recycle: false, compost: false }, share);
+
+const data = {
+  locale,
+  share,
+  strings: {
+    personOne: w('personOne'),
+    personMany: w('personMany'),
+    sacks: w('sacks'),
+    leavesValue: w('leavesValue'),
+    verdictNone: w('verdictNone'),
+    verdictRecycle: w('verdictRecycle'),
+    verdictCompost: w('verdictCompost'),
+    verdictBoth: w('verdictBoth'),
+    yourHome: j('yourHome'),
+  },
+};
+const parts = [
+  { id: 'organic', pct: share.organic, name: w('organic'), hint: w('organicHint'), value: e.organic, icon: 'sprout' },
+  { id: 'recyclable', pct: share.recyclable, name: w('recyclable'), hint: w('recyclableHint'), value: e.recyclable, icon: 'recycle' },
+  { id: 'other', pct: share.other, name: w('other'), hint: w('otherHint'), value: e.other, icon: 'trash' },
+] as const;
+const paths = [
+  { id: 'mixed', icon: 'shopping-bag', label: j('mixed'), steps: journey.mixed, end: j('mixedEnd'), home: e.year },
+  { id: 'sorted', icon: 'recycle', label: j('sorted'), steps: journey.sorted, end: j('sortedEnd'), home: (e.year * share.other) / 100 },
+] as const;
+---
+
+<div class="yw" data-your-waste>
+  <script type="application/json" data-yw-data set:html={JSON.stringify(data)} />
+
+  <div class="yw-grid">
+    <form class="yw-inputs" data-yw-form>
+      <div class="yw-field">
+        <label class="yw-label" for="yw-people">{w('people')}</label>
+        <div class="stepper">
+          <button type="button" class="step" data-yw-step="-1" aria-label={w('fewer')} aria-controls="yw-people">
+            <Icon name="minus" size={20} />
+          </button>
+          <output class="people-out" for="yw-people" data-yw-people-out>{fill(w('personMany'), { n: d(PEOPLE) })}</output>
+          <button type="button" class="step" data-yw-step="1" aria-label={w('more')} aria-controls="yw-people">
+            <Icon name="plus" size={20} />
+          </button>
+        </div>
+        <input id="yw-people" name="people" type="range" min="1" max="15" step="1" value={PEOPLE} data-yw-people />
+      </div>
+
+      <fieldset class="yw-field">
+        <legend class="yw-label">{w('rate')}</legend>
+        <label class="choice">
+          <input type="radio" name="grams" value={nepalGrams} checked />
+          <span>{w('rateNepal')}</span>
+        </label>
+        <label class="choice">
+          <input type="radio" name="grams" value={kathmanduGrams} />
+          <span>{w('rateCity')}</span>
+        </label>
+      </fieldset>
+
+      <fieldset class="yw-field">
+        <legend class="yw-label">{w('habits')}</legend>
+        <label class="choice habit">
+          <input type="checkbox" name="recycle" />
+          <Icon name="recycle" size={20} />
+          <span>{w('habitRecycle')}</span>
+        </label>
+        <label class="choice habit">
+          <input type="checkbox" name="compost" />
+          <Icon name="sprout" size={20} />
+          <span>{w('habitCompost')}</span>
+        </label>
+      </fieldset>
+    </form>
+
+    <div class="yw-results">
+      <ul class="totals">
+        <li>
+          <strong data-yw="day">{kg(e.day)}</strong>
+          <span>{w('kg')} {w('perDay')}</span>
+        </li>
+        <li>
+          <strong data-yw="month">{kg(e.month)}</strong>
+          <span>{w('kg')} {w('perMonth')}</span>
+        </li>
+        <li class="is-year">
+          <strong data-yw="year">{kg(e.year)}</strong>
+          <span>{w('kg')} {w('perYear')}</span>
+        </li>
+      </ul>
+      <p class="sacks" data-yw="sacks">{fill(w('sacks'), { n: d(e.sacks) })}</p>
+
+      <h3 class="yw-sub">{w('madeOf')}</h3>
+      <div class="bar" aria-hidden="true">
+        {parts.map((p) => <span class:list={['seg', `seg-${p.id}`]} data-part={p.id} style={`flex-grow:${p.pct}`} />)}
+      </div>
+      <ul class="parts">
+        {
+          parts.map((p) => (
+            <li class:list={['part', `part-${p.id}`]} data-part={p.id}>
+              <span class="part-icon" aria-hidden="true">
+                <Icon name={p.icon} size={18} />
+              </span>
+              <span class="part-text">
+                <span class="part-name">{p.name}</span>
+                <small>
+                  {d(p.pct)}% · {p.hint}
+                </small>
+              </span>
+              <strong class="part-kg">
+                <span data-yw={p.id}>{kg(p.value)}</span> {w('kg')}
+              </strong>
+            </li>
+          ))
+        }
+      </ul>
+
+      <div class="leaves" aria-live="polite">
+        <p class="leaves-title">{w('leaves')}</p>
+        <div class="meter" aria-hidden="true">
+          <span data-yw-meter style="width:100%" />
+        </div>
+        <p class="leaves-value" data-yw="leaves">{fill(w('leavesValue'), { kg: kg(e.leaves), pct: d(100) })}</p>
+        <p class="verdict" data-yw="verdict">{w('verdictNone')}</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="journey">
+    <div class="j-head">
+      <h3>{j('title')}</h3>
+      <p>{j('intro')}</p>
+    </div>
+    <div class="j-tabs" role="tablist" aria-label={j('title')} data-j-tabs hidden>
+      {
+        paths.map((p, i) => (
+          <button
+            type="button"
+            role="tab"
+            id={`j-tab-${p.id}`}
+            aria-controls={`j-${p.id}`}
+            aria-selected={i === 0 ? 'true' : 'false'}
+            tabindex={i === 0 ? 0 : -1}
+            data-j-tab={p.id}
+          >
+            <Icon name={p.icon} size={18} /> {p.label}
+          </button>
+        ))
+      }
+    </div>
+    {
+      paths.map((p) => (
+        <section class:list={['j-panel', `j-${p.id}`]} id={`j-${p.id}`} role="tabpanel" aria-labelledby={`j-tab-${p.id}`} data-j-panel={p.id}>
+          <h4 class="j-panel-title">{p.label}</h4>
+          <ol class="j-steps">
+            {p.steps.map((s, i) => (
+              <li>
+                <span class="j-icon" aria-hidden="true">
+                  <Icon name={s.icon} size={22} />
+                </span>
+                <span class="j-num" aria-hidden="true">
+                  {d(i + 1)}
+                </span>
+                <h5>{tr(s.title, lang)}</h5>
+                <p>{tr(s.text, lang)}</p>
+              </li>
+            ))}
+          </ol>
+          <p class="j-end">
+            <Icon name={p.id === 'mixed' ? 'triangle-alert' : 'circle-check'} size={20} />
+            <strong>{p.end}</strong>
+            <span data-yw={p.id === 'mixed' ? 'homeMixed' : 'homeSorted'}>{fill(j('yourHome'), { kg: kg(p.home) })}</span>
+          </p>
+        </section>
+      ))
+    }
+  </div>
+
+  <p class="yw-note">
+    {w('note')}
+    <span class="yw-sources">
+      {`${w('sources')}: `}
+      {
+        householdWaste.sources.map((s, i) => (
+          <>
+            {i > 0 && '; '}
+            <a href={s.href} target="_blank" rel="noopener" lang="en">
+              {s.label}
+            </a>
+          </>
+        ))
+      }
+    </span>
+  </p>
+</div>
+
+<script>
+  import { estimateWaste, formatKg } from '~/lib/waste-calc';
+
+  type Data = {
+    locale: string;
+    share: { organic: number; recyclable: number; other: number };
+    strings: Record<string, string>;
+  };
+
+  const root = document.querySelector<HTMLElement>('[data-your-waste]');
+  if (root) {
+    const data: Data = JSON.parse(root.querySelector('[data-yw-data]')!.textContent!);
+    const s = data.strings;
+    const form = root.querySelector<HTMLFormElement>('[data-yw-form]')!;
+    const people = root.querySelector<HTMLInputElement>('[data-yw-people]')!;
+    const peopleOut = root.querySelector<HTMLOutputElement>('[data-yw-people-out]')!;
+    const meter = root.querySelector<HTMLElement>('[data-yw-meter]')!;
+    const int = new Intl.NumberFormat(data.locale, { maximumFractionDigits: 0 });
+    const kg = (n: number) => formatKg(n, data.locale);
+    const fill = (text: string, vars: Record<string, string>) => text.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '');
+    const set = (key: string, text: string) => {
+      const el = root.querySelector<HTMLElement>(`[data-yw="${key}"]`);
+      if (el && el.textContent !== text) el.textContent = text;
+    };
+
+    const update = () => {
+      const n = Number(people.value);
+      const grams = Number((form.elements.namedItem('grams') as RadioNodeList).value);
+      const recycle = (form.elements.namedItem('recycle') as HTMLInputElement).checked;
+      const compost = (form.elements.namedItem('compost') as HTMLInputElement).checked;
+      const e = estimateWaste({ people: n, grams, recycle, compost }, data.share);
+
+      peopleOut.value = n === 1 ? s.personOne : fill(s.personMany, { n: int.format(n) });
+      set('day', kg(e.day));
+      set('month', kg(e.month));
+      set('year', kg(e.year));
+      set('sacks', fill(s.sacks, { n: int.format(e.sacks) }));
+      set('organic', kg(e.organic));
+      set('recyclable', kg(e.recyclable));
+      set('other', kg(e.other));
+      set('leaves', fill(s.leavesValue, { kg: kg(e.leaves), pct: int.format(e.leavesPct) }));
+      set('verdict', recycle && compost ? s.verdictBoth : compost ? s.verdictCompost : recycle ? s.verdictRecycle : s.verdictNone);
+      set('homeMixed', fill(s.yourHome, { kg: kg(e.year) }));
+      set('homeSorted', fill(s.yourHome, { kg: kg(e.other) }));
+      meter.style.width = `${e.leavesPct}%`;
+      root.querySelectorAll<HTMLElement>('[data-part="organic"]').forEach((el) => el.classList.toggle('is-kept', compost));
+      root.querySelectorAll<HTMLElement>('[data-part="recyclable"]').forEach((el) => el.classList.toggle('is-kept', recycle));
+    };
+
+    form.addEventListener('input', update);
+    form.addEventListener('submit', (e) => e.preventDefault());
+    root.querySelectorAll<HTMLButtonElement>('[data-yw-step]').forEach((b) =>
+      b.addEventListener('click', () => {
+        const next = Math.min(Number(people.max), Math.max(Number(people.min), Number(people.value) + Number(b.dataset.ywStep)));
+        people.value = String(next);
+        update();
+      }),
+    );
+    update();
+
+    // Two journeys as tabs (both are shown, one under the other, without JavaScript).
+    const tabs = [...root.querySelectorAll<HTMLButtonElement>('[data-j-tab]')];
+    const panels = [...root.querySelectorAll<HTMLElement>('[data-j-panel]')];
+    const select = (id: string, focus = false) => {
+      for (const t of tabs) {
+        const on = t.dataset.jTab === id;
+        t.setAttribute('aria-selected', String(on));
+        t.tabIndex = on ? 0 : -1;
+        if (on && focus) t.focus();
+      }
+      for (const p of panels) p.hidden = p.dataset.jPanel !== id;
+    };
+    tabs.forEach((t, i) => {
+      t.addEventListener('click', () => select(t.dataset.jTab!));
+      t.addEventListener('keydown', (e) => {
+        if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+        e.preventDefault();
+        const next = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+        select(next.dataset.jTab!, true);
+      });
+    });
+    root.querySelector<HTMLElement>('[data-j-tabs]')!.hidden = false;
+    root.classList.add('is-enhanced');
+    select('mixed');
+  }
+</script>
+
+<style>
+  .yw {
+    display: grid;
+    gap: clamp(2rem, 5vw, 3rem);
+  }
+
+  .yw-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    gap: clamp(1.25rem, 3vw, 2rem);
+    align-items: start;
+  }
+
+  /* ---------- Inputs ---------- */
+  .yw-inputs {
+    display: grid;
+    gap: 1.5rem;
+    padding: clamp(1.25rem, 3vw, 1.75rem);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--line);
+    background: #fff;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .yw-field {
+    display: grid;
+    gap: 0.6rem;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .yw-label {
+    padding: 0;
+    font-family: var(--font-head);
+    font-weight: 600;
+    font-size: 1.05rem;
+    color: var(--ink);
+  }
+
+  .stepper {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .step {
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    border: 1.5px solid var(--line-strong);
+    border-radius: 14px;
+    background: #fff;
+    color: var(--ink);
+  }
+
+  .step:hover {
+    border-color: var(--green);
+    color: var(--green);
+  }
+
+  .people-out {
+    flex: 1;
+    text-align: center;
+    font-family: var(--font-head);
+    font-size: var(--step-2);
+    font-weight: 700;
+    color: var(--green);
+  }
+
+  input[type='range'] {
+    width: 100%;
+    height: 28px;
+    accent-color: var(--green);
+    cursor: pointer;
+  }
+
+  .choice {
+    display: flex;
+    gap: 0.65rem;
+    align-items: flex-start;
+    padding: 0.7rem 0.85rem;
+    border: 1.5px solid var(--line);
+    border-radius: var(--radius-sm);
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.45;
+    cursor: pointer;
+    transition: border-color 0.2s var(--ease), background-color 0.2s var(--ease);
+  }
+
+  .choice:hover {
+    border-color: var(--green-300);
+  }
+
+  .choice:has(input:checked) {
+    border-color: var(--green);
+    background: var(--green-50);
+  }
+
+  .choice:has(input:focus-visible) {
+    outline: 3px solid var(--blue);
+    outline-offset: 2px;
+  }
+
+  .choice input {
+    flex: none;
+    width: 1.15rem;
+    height: 1.15rem;
+    margin-top: 0.2rem;
+    accent-color: var(--green);
+  }
+
+  .habit :global(.icon) {
+    flex: none;
+    margin-top: 0.15rem;
+    color: var(--green-600);
+  }
+
+  /* ---------- Results ---------- */
+  .yw-results {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .totals {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .totals li {
+    display: grid;
+    gap: 0.1rem;
+    padding: 1rem 1.1rem;
+    border-radius: var(--radius);
+    background: #fff;
+    border: 1px solid var(--line);
+  }
+
+  .totals strong {
+    font-family: var(--font-head);
+    font-size: var(--step-2);
+    font-weight: 700;
+    line-height: 1.15;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .totals span {
+    color: var(--muted);
+    font-size: 0.92rem;
+  }
+
+  .totals .is-year {
+    background: var(--green);
+    border-color: var(--green);
+  }
+
+  .totals .is-year strong {
+    color: #fff;
+  }
+
+  .totals .is-year span {
+    color: #d8ead0;
+  }
+
+  .sacks {
+    color: var(--muted);
+  }
+
+  .yw-sub {
+    margin-top: 0.5rem;
+    font-size: 1.05rem;
+  }
+
+  .bar {
+    display: flex;
+    gap: 3px;
+    height: 18px;
+    border-radius: 999px;
+    overflow: hidden;
+  }
+
+  .seg {
+    transition: opacity 0.3s var(--ease), filter 0.3s var(--ease);
+  }
+
+  .seg-organic {
+    background: var(--green-500);
+  }
+
+  .seg-recyclable {
+    background: var(--blue);
+  }
+
+  .seg-other {
+    background: #8a948c;
+  }
+
+  /* Composted or recycled at home: striped, so what still leaves the house stands out. */
+  .seg.is-kept {
+    background-image: repeating-linear-gradient(135deg, rgb(255 255 255 / 0.45) 0 5px, transparent 5px 10px);
+  }
+
+  .parts {
+    list-style: none;
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .part {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.65rem 0.85rem;
+    border-radius: var(--radius-sm);
+    background: #fff;
+    border: 1px solid var(--line);
+    transition: border-color 0.25s var(--ease), background-color 0.25s var(--ease);
+  }
+
+  .part-icon {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    color: #fff;
+  }
+
+  .part-organic .part-icon {
+    background: var(--green-500);
+  }
+
+  .part-recyclable .part-icon {
+    background: var(--blue);
+  }
+
+  .part-other .part-icon {
+    background: #8a948c;
+  }
+
+  .part-text {
+    display: grid;
+    line-height: 1.35;
+  }
+
+  .part-name {
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  .part-text small {
+    color: var(--muted);
+  }
+
+  .part-kg {
+    font-family: var(--font-head);
+    color: var(--ink);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Kept at home (composted or recycled): marked with a soft tint. */
+  .part.is-kept {
+    border-color: var(--green-200);
+    background: var(--green-50);
+  }
+
+  .part.is-kept .part-kg {
+    color: var(--green);
+  }
+
+  .leaves {
+    display: grid;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    padding: 1.1rem 1.25rem;
+    border-radius: var(--radius);
+    background: var(--green-900);
+    color: #dbe8d4;
+  }
+
+  .leaves-title {
+    font-weight: 600;
+    color: #fff;
+  }
+
+  .meter {
+    height: 12px;
+    border-radius: 999px;
+    background: rgb(255 255 255 / 0.15);
+    overflow: hidden;
+  }
+
+  .meter span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #f0a59c, #e16a5e);
+    transition: width 0.45s var(--ease);
+  }
+
+  .leaves-value {
+    font-family: var(--font-head);
+    font-size: var(--step-1);
+    font-weight: 700;
+    color: #fff;
+  }
+
+  /* ---------- Journey ---------- */
+  .journey {
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  .j-head {
+    display: grid;
+    gap: 0.4rem;
+    max-width: 720px;
+  }
+
+  .j-head h3 {
+    font-size: var(--step-2);
+  }
+
+  .j-head p {
+    color: var(--muted);
+  }
+
+  .j-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .j-tabs button {
+    display: inline-flex;
+    gap: 0.45rem;
+    align-items: center;
+    min-height: 46px;
+    padding: 0.5rem 1.1rem;
+    border: 1.5px solid var(--line-strong);
+    border-radius: 999px;
+    background: #fff;
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  .j-tabs button[aria-selected='true'] {
+    border-color: var(--green);
+    background: var(--green);
+    color: #fff;
+  }
+
+  .j-tabs button:focus-visible {
+    outline: 3px solid var(--blue);
+    outline-offset: 2px;
+  }
+
+  .j-panel {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .j-panel + .j-panel {
+    margin-top: 1rem;
+  }
+
+  /* With tabs, each panel is labelled by its tab. */
+  .is-enhanced .j-panel-title {
+    display: none;
+  }
+
+  .j-panel-title {
+    font-size: 1.1rem;
+  }
+
+  .j-steps {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+    counter-reset: step;
+  }
+
+  .j-steps li {
+    position: relative;
+    display: grid;
+    gap: 0.5rem;
+    align-content: start;
+    padding: 1.1rem 1.1rem 1.25rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    background: #fff;
+  }
+
+  /* An arrow between the steps on wide screens. */
+  .j-steps li:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 2.1rem;
+    right: -0.85rem;
+    z-index: 1;
+    width: 0.7rem;
+    height: 0.7rem;
+    border-top: 3px solid var(--line-strong);
+    border-right: 3px solid var(--line-strong);
+    rotate: 45deg;
+  }
+
+  .j-icon {
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+  }
+
+  .j-num {
+    position: absolute;
+    top: 1rem;
+    right: 1.1rem;
+    font-family: var(--font-head);
+    font-size: 1.6rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--line);
+  }
+
+  .j-steps h5 {
+    margin: 0;
+    font-family: var(--font-head);
+    font-size: 1.02rem;
+    color: var(--ink);
+  }
+
+  .j-steps p {
+    color: var(--muted);
+    font-size: var(--step--1);
+    line-height: 1.55;
+  }
+
+  .j-mixed .j-icon {
+    background: #f1efe9;
+    color: #6b6457;
+  }
+
+  .j-mixed li:last-child .j-icon {
+    background: var(--bucket-red-50);
+    color: var(--bucket-red);
+  }
+
+  .j-sorted .j-icon {
+    background: var(--green-50);
+    color: var(--green);
+  }
+
+  .j-sorted li:nth-child(3) .j-icon {
+    background: var(--blue-50);
+    color: var(--blue-700);
+  }
+
+  .j-sorted li:nth-child(4) .j-icon {
+    background: var(--hazard-50);
+    color: var(--hazard);
+  }
+
+  .j-end {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.75rem;
+    align-items: center;
+    padding: 0.9rem 1.1rem;
+    border-radius: var(--radius-sm);
+  }
+
+  .j-end span {
+    margin-left: auto;
+    font-weight: 600;
+  }
+
+  .j-mixed .j-end {
+    background: var(--bucket-red-50);
+    color: #7a1d12;
+  }
+
+  .j-sorted .j-end {
+    background: var(--green-50);
+    color: var(--green-800);
+  }
+
+  .yw-note {
+    font-size: 0.9rem;
+    color: var(--muted);
+    max-width: 900px;
+  }
+
+  .yw-sources {
+    display: block;
+    margin-top: 0.4rem;
+  }
+
+  .yw-sources a {
+    color: var(--blue-700);
+  }
+
+  @media (max-width: 1000px) {
+    .yw-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .j-steps {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .j-steps li::after {
+      display: none;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .totals {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .totals .is-year {
+      grid-column: 1 / -1;
+      order: -1;
+    }
+
+    .j-steps {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .j-end span {
+      margin-left: 0;
+    }
+  }
+</style>

@@ -1,0 +1,213 @@
+---
+// Links to the interactive tools (src/data/tools.ts). "tiles": a compact row (top of the Resources
+// page); "cards": larger tiles with a line of text (home page), coloured green and blue in turn.
+import Icon from './Icon.astro';
+import { tools, toolsCopy } from '~/data/tools';
+import { localizePath, tr, type Lang } from '~/i18n/utils';
+
+type Props = { lang: Lang; ids?: string[]; variant?: 'tiles' | 'cards'; label?: string };
+const { lang, ids, variant = 'cards', label } = Astro.props;
+const list = ids ? ids.map((id) => tools.find((t) => t.id === id)!).filter(Boolean) : tools;
+// On the Resources page itself (tiles), links to its own sections are plain #anchors.
+const linkFor = (path: string) =>
+  variant === 'tiles' && path.startsWith('/resources/#') ? path.slice('/resources/'.length) : localizePath(path, lang);
+// A checkerboard in a two-column grid: green, blue / blue, green.
+const tone = (i: number) => ((i + Math.floor(i / 2)) % 2 === 0 ? 'green' : 'blue');
+---
+
+<ul class:list={['tools', `tools-${variant}`]} aria-label={label}>
+  {
+    list.map((tool, i) => (
+      <li>
+        <a href={linkFor(tool.href)} class:list={[variant === 'cards' && `tone-${tone(i)}`]}>
+          <span class="t-icon" aria-hidden="true">
+            <Icon name={tool.icon} size={variant === 'tiles' ? 20 : 24} />
+          </span>
+          <span class="t-text">
+            <strong>{tr(tool.title, lang)}</strong>
+            {variant === 'cards' && <span>{tr(tool.text, lang)}</span>}
+          </span>
+          {variant === 'cards' && (
+            <>
+              <span class="t-go">
+                {tr(toolsCopy.open, lang)} <Icon name="arrow-right" size={16} />
+              </span>
+              <span class="t-mark" aria-hidden="true">
+                <Icon name={tool.icon} size={128} strokeWidth={1.25} />
+              </span>
+            </>
+          )}
+        </a>
+      </li>
+    ))
+  }
+</ul>
+
+<style>
+  .tools {
+    list-style: none;
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .tools a {
+    display: flex;
+    gap: 0.8rem;
+    align-items: center;
+    height: 100%;
+    color: var(--ink);
+    text-decoration: none;
+    transition:
+      border-color 0.2s var(--ease),
+      box-shadow 0.2s var(--ease),
+      translate 0.2s var(--ease);
+  }
+
+  .t-icon {
+    display: grid;
+    flex: none;
+    place-items: center;
+    border-radius: 14px;
+    background: var(--green-50);
+    color: var(--green);
+    transition: background-color 0.2s var(--ease), color 0.2s var(--ease);
+  }
+
+  .t-text {
+    display: grid;
+    gap: 0.2rem;
+    line-height: 1.35;
+  }
+
+  .t-text strong {
+    font-family: var(--font-head);
+    font-weight: 600;
+  }
+
+  /* ---------- Tiles ---------- */
+  .tools-tiles {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+  }
+
+  .tools-tiles a {
+    padding: 0.65rem 0.85rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: rgb(255 255 255 / 0.85);
+  }
+
+  .tools-tiles .t-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+  }
+
+  .tools-tiles a:hover {
+    border-color: var(--green-300);
+    box-shadow: var(--shadow-sm);
+    translate: 0 -2px;
+  }
+
+  /* ---------- Cards ---------- */
+  .tools-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: 1fr;
+  }
+
+  .tools-cards a {
+    --tone: var(--green);
+    --tone-soft: var(--green-50);
+    position: relative;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.85rem;
+    min-height: 200px;
+    padding: 1.25rem 1.3rem;
+    overflow: hidden;
+    isolation: isolate;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: #fff;
+  }
+
+  .tools-cards a.tone-blue {
+    --tone: var(--blue-700);
+    --tone-soft: var(--blue-50);
+  }
+
+  .tools-cards .t-icon {
+    width: 52px;
+    height: 52px;
+    background: var(--tone-soft);
+    color: var(--tone);
+  }
+
+  .tools-cards .t-text strong {
+    font-size: 1.12rem;
+  }
+
+  .tools-cards .t-text span {
+    color: var(--muted);
+    font-size: var(--step--1);
+  }
+
+  .t-go {
+    display: inline-flex;
+    gap: 0.35rem;
+    align-items: center;
+    margin-top: auto;
+    font-family: var(--font-head);
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--tone);
+  }
+
+  :lang(ne) .t-go {
+    font-family: var(--font-sans);
+  }
+
+  .t-go :global(.icon) {
+    transition: translate 0.2s var(--ease);
+  }
+
+  /* A large faint copy of the icon fills the corner. */
+  .t-mark {
+    position: absolute;
+    right: -22px;
+    bottom: -26px;
+    z-index: -1;
+    color: var(--tone-soft);
+    transition: rotate 0.3s var(--ease), scale 0.3s var(--ease);
+  }
+
+  .tools-cards a:hover {
+    border-color: var(--tone);
+    box-shadow: var(--shadow);
+    translate: 0 -2px;
+  }
+
+  .tools-cards a:hover .t-icon {
+    background: var(--tone);
+    color: #fff;
+  }
+
+  .tools-cards a:hover .t-go :global(.icon) {
+    translate: 3px 0;
+  }
+
+  .tools-cards a:hover .t-mark {
+    rotate: -8deg;
+    scale: 1.06;
+  }
+
+  @media (max-width: 560px) {
+    .tools-cards {
+      grid-template-columns: minmax(0, 1fr);
+      grid-auto-rows: auto;
+    }
+
+    .tools-cards a {
+      min-height: 0;
+    }
+  }
+</style>

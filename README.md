@@ -17,6 +17,10 @@ npm run build    # public pages in dist/, admin panel as a Netlify function
   `src/data/photo-sizes.json` holds each photo's sizes, average colour (shown while loading) and smart focal
   point (used as object-position when cropped); captions are in `src/data/photos.ts`.
 - Partners and records (`src/data/partners.ts`) must each come from a written source.
+- Interactive tools live on the Resources page and are listed under "Resources" in the menu and in
+  "Try it yourself" on the home page: the "Which bucket?" finder and the sorting game (both from
+  `src/data/sorting.ts`), the household waste estimate with "Where does it go?", and the compost doctor.
+  Their words and figures are in `src/data/tools.ts`; each figure names its source there and on the page.
 - Old addresses from earlier NEPCEMAC sites are redirected in `netlify.toml`.
 
 ## Admin panel (`/admin`)

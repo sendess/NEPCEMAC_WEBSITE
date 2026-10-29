@@ -24,6 +24,13 @@ const { eyebrow, title, lead, photo, photoAlt = '' } = Astro.props;
         <Figure class="hero-photo" slug={photo} alt={photoAlt} caption ratio="4 / 3" priority sizes="(min-width: 900px) 480px, 100vw" />
       )
     }
+    {
+      Astro.slots.has('after') && (
+        <div class="after">
+          <slot name="after" />
+        </div>
+      )
+    }
   </div>
 </section>
 
@@ -57,6 +64,11 @@ const { eyebrow, title, lead, photo, photoAlt = '' } = Astro.props;
 
   h1 {
     font-size: var(--step-4);
+  }
+
+  /* Full-width extras under the title, e.g. the tool links on the Resources page. */
+  .after {
+    grid-column: 1 / -1;
   }
 
   .inner :global(.hero-photo .frame) {

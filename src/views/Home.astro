@@ -4,8 +4,11 @@ import Icon from '~/components/Icon.astro';
 import Photo from '~/components/Photo.astro';
 import Figure from '~/components/Figure.astro';
 import SectionHead from '~/components/SectionHead.astro';
+import SortQuiz from '~/components/SortQuiz.astro';
+import ToolCards from '~/components/ToolCards.astro';
 import YouTube from '~/components/YouTube.astro';
 import { org } from '~/data/site';
+import { toolsCopy } from '~/data/tools';
 import { milestones } from '~/data/about';
 import { themes, sortingGuide } from '~/data/programmes';
 import { caption } from '~/data/photos';
@@ -20,11 +23,12 @@ const L = (p: string) => localizePath(p, lang);
 
 const [activities, contact, figures] = await Promise.all([getActivities(), getContact(), getFigures()]);
 
+// `count` lets the script count up to the figure when the band scrolls into view.
 const stats = [
-  { value: formatDigits(yearsSince(org.foundedOn), lang), label: t('home.stats.years') },
-  { value: formatNumber(figures.families, lang), label: t('home.stats.families') },
-  { value: `${formatNumber(figures.trained, lang)}+`, label: t('home.stats.trained') },
-  { value: formatNumber(figures.cities, lang), label: t('home.stats.cities') },
+  { value: formatDigits(yearsSince(org.foundedOn), lang), count: yearsSince(org.foundedOn), group: false, label: t('home.stats.years') },
+  { value: formatNumber(figures.families, lang), count: figures.families, group: true, label: t('home.stats.families') },
+  { value: `${formatNumber(figures.trained, lang)}+`, count: figures.trained, group: true, suffix: '+', label: t('home.stats.trained') },
+  { value: formatNumber(figures.cities, lang), count: figures.cities, group: true, label: t('home.stats.cities') },
 ];
 
 const journey = milestones.filter((m) => ['1997', '2001', '2004', '2005', '2008', '2013'].includes(m.year.en));
@@ -74,13 +78,15 @@ const highlights = [
   </section>
 
   <!-- Figures -->
-  <section class="stats" aria-label={tr(org.name, lang)}>
+  <section class="stats" aria-label={tr(org.name, lang)} data-stats data-lang={lang}>
     <div class="container">
       <ul class="stat-row">
         {
           stats.map((s) => (
             <li>
-              <strong>{s.value}</strong>
+              <strong data-count={s.count} data-group={s.group ? '' : undefined} data-suffix={s.suffix}>
+                {s.value}
+              </strong>
               <span>{s.label}</span>
             </li>
           ))
@@ -159,6 +165,17 @@ const highlights = [
         </form>
       </div>
       <Figure class="sort-photo" slug="bucket-stock" alt={caption('bucket-stock', lang)} caption ratio="1" sizes="(min-width: 1000px) 520px, 100vw" />
+    </div>
+  </section>
+
+  <!-- Try it yourself -->
+  <section class="section section-tint">
+    <div class="container">
+      <SectionHead eyebrow={tr(toolsCopy.homeEyebrow, lang)} title={tr(toolsCopy.homeTitle, lang)} intro={tr(toolsCopy.homeIntro, lang)} />
+      <div class="try-grid">
+        <SortQuiz lang={lang} variant="teaser" />
+        <ToolCards lang={lang} ids={['quiz', 'your-waste', 'compost-doctor', 'poster']} label={tr(toolsCopy.label, lang)} />
+      </div>
     </div>
   </section>
 
@@ -279,7 +296,58 @@ const highlights = [
   </section>
 </BaseLayout>
 
+<script>
+  // The figures count up the first time the green band scrolls into view. Left alone when the band is
+  // already on screen at load (no flash) or when the reader prefers less motion.
+  const band = document.querySelector<HTMLElement>('[data-stats]');
+  const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (band && !calm && 'IntersectionObserver' in window && band.getBoundingClientRect().top > innerHeight) {
+    const locale = band.dataset.lang === 'ne' ? 'ne-NP-u-nu-deva' : 'en-US';
+    const figures = [...band.querySelectorAll<HTMLElement>('[data-count]')].map((el) => ({
+      el,
+      target: Number(el.dataset.count),
+      final: el.textContent!.trim(),
+      suffix: el.dataset.suffix ?? '',
+      format: new Intl.NumberFormat(locale, { useGrouping: el.hasAttribute('data-group'), maximumFractionDigits: 0 }),
+    }));
+    for (const f of figures) f.el.textContent = f.format.format(0) + f.suffix;
+
+    const run = () => {
+      const start = performance.now();
+      const tick = (now: number) => {
+        const p = Math.min(1, (now - start) / 1400);
+        const eased = 1 - (1 - p) ** 3;
+        for (const f of figures) f.el.textContent = p < 1 ? f.format.format(Math.round(f.target * eased)) + f.suffix : f.final;
+        if (p < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    };
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((e) => e.isIntersecting)) return;
+        io.disconnect();
+        run();
+      },
+      { threshold: 0.5 },
+    );
+    io.observe(band);
+  }
+</script>
+
 <style>
+  /* Try it yourself */
+  .try-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    gap: 1.25rem;
+    align-items: stretch;
+  }
+
+  /* Without JavaScript the quick question is hidden; the tool cards take the full width. */
+  .try-grid:has(> :global([data-quiz][hidden])) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   /* Hero */
   .hero {
     padding-block: clamp(2.5rem, 6vw, 4.5rem) clamp(3rem, 7vw, 5rem);
@@ -396,6 +464,7 @@ const highlights = [
     font-size: var(--step-3);
     font-weight: 700;
     line-height: 1.1;
+    font-variant-numeric: tabular-nums;
   }
 
   .stat-row span {
@@ -805,7 +874,8 @@ const highlights = [
   @media (max-width: 1000px) {
     .hero-grid,
     .sort-grid,
-    .video-grid {
+    .video-grid,
+    .try-grid {
       grid-template-columns: minmax(0, 1fr);
     }
     .themes {

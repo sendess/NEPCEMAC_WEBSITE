@@ -1,0 +1,803 @@
+---
+// Sorting game built on the "Which bucket?" list (src/data/sorting.ts).
+// variant "full": ten questions with a score (Resources page). variant "teaser": one question at a
+// time with a link to the full game (home page). It needs JavaScript, so it stays hidden without it.
+import Icon from './Icon.astro';
+import { bins, sortItems, type Bin } from '~/data/sorting';
+import { quizCopy } from '~/data/tools';
+import { localizePath, tr, type Lang } from '~/i18n/utils';
+
+type Props = { lang: Lang; variant?: 'full' | 'teaser' };
+const { lang, variant = 'full' } = Astro.props;
+const other: Lang = lang === 'en' ? 'ne' : 'en';
+const q = (key: keyof typeof quizCopy) => tr(quizCopy[key], lang);
+const order: Bin[] = ['green', 'red', 'special'];
+
+const data = {
+  lang,
+  items: sortItems.map((i) => ({
+    id: i.id,
+    bin: i.bin,
+    name: tr(i.name, lang),
+    alt: i.name[other],
+    tip: i.tip ? tr(i.tip, lang) : '',
+  })),
+  bins: Object.fromEntries(order.map((b) => [b, { title: tr(bins[b].title, lang), rule: tr(bins[b].rule, lang) }])),
+  copy: Object.fromEntries(Object.keys(quizCopy).map((k) => [k, q(k as keyof typeof quizCopy)])),
+  shareUrl: new URL(localizePath('/resources/#quiz', lang), Astro.site).href,
+};
+const answers = order.map((bin) => ({ bin, title: tr(bins[bin].title, lang), short: tr(bins[bin].short, lang) }));
+---
+
+<div class:list={['quiz', `quiz-${variant}`]} data-quiz data-variant={variant} hidden>
+  <script type="application/json" data-quiz-data set:html={JSON.stringify(data)} />
+
+  {
+    variant === 'full' && (
+      <div class="q-start" data-q-start>
+        <span class="q-badge" aria-hidden="true">
+          <Icon name="gamepad-2" size={34} />
+        </span>
+        <div class="q-start-text">
+          <p class="q-start-note">{q('startNote')}</p>
+          <p class="q-best" data-q-best hidden />
+        </div>
+        <button class="btn btn-primary" type="button" data-q-begin>
+          <Icon name="play" size={18} /> {q('start')}
+        </button>
+      </div>
+    )
+  }
+
+  <div class="q-play" data-q-play hidden={variant === 'full'}>
+    {
+      variant === 'full' ? (
+        <div class="q-top">
+          <span data-q-count />
+          <span class="q-score" aria-hidden="true">
+            <Icon name="check" size={16} /> <span data-q-score>0</span>
+          </span>
+        </div>
+      ) : (
+        <p class="q-label">
+          <Icon name="gamepad-2" size={18} /> {q('quick')}
+        </p>
+      )
+    }
+    {
+      variant === 'full' && (
+        <div class="q-progress" aria-hidden="true">
+          <span data-q-bar />
+        </div>
+      )
+    }
+    <p class="q-prompt">{variant === 'full' ? q('prompt') : q('quickPrompt')}</p>
+    <div class="q-card" data-q-card>
+      <p class="q-item" data-q-item></p>
+      <p class="q-alt" data-q-alt lang={other}></p>
+    </div>
+    <div class="q-answers" role="group" aria-label={variant === 'full' ? q('prompt') : q('quickPrompt')}>
+      {
+        answers.map((a, i) => (
+          <button type="button" class:list={['q-answer', `q-${a.bin}`]} data-q-answer={a.bin} aria-keyshortcuts={variant === 'full' ? String(i + 1) : undefined}>
+            <span class="q-dot" aria-hidden="true">
+              <Icon name={a.bin === 'special' ? 'triangle-alert' : 'trash'} size={20} />
+            </span>
+            <span class="q-answer-text">
+              <strong>{a.title}</strong>
+              <small>{a.short}</small>
+            </span>
+          </button>
+        ))
+      }
+    </div>
+    <div class="q-feedback" data-q-feedback hidden={variant === 'full'}>
+      <p class="q-verdict" data-q-verdict role="status"></p>
+      <p class="q-explain" data-q-explain></p>
+      <div class="btn-row">
+        {
+          variant === 'full' ? (
+            <button class="btn btn-primary" type="button" data-q-next>
+              {q('next')} <Icon name="arrow-right" size={18} />
+            </button>
+          ) : (
+            <>
+              <button class="btn btn-light btn-sm" type="button" data-q-another>
+                <Icon name="rotate-ccw" size={16} /> {q('another')}
+              </button>
+              <a class="btn btn-ghost-light btn-sm" href={`${localizePath('/resources/', lang)}#quiz`}>
+                {q('playAll')} <Icon name="arrow-right" size={16} />
+              </a>
+            </>
+          )
+        }
+      </div>
+    </div>
+  </div>
+
+  {
+    variant === 'full' && (
+      <div class="q-result" data-q-result hidden tabindex="-1">
+        <span class="q-badge q-trophy" aria-hidden="true">
+          <Icon name="trophy" size={34} />
+        </span>
+        <p class="q-final" data-q-final />
+        <p class="q-message" data-q-message />
+        <p class="q-best" data-q-best-result />
+        <div class="q-missed" data-q-missed-wrap hidden>
+          <h3>{q('missed')}</h3>
+          <ul data-q-missed />
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" type="button" data-q-again>
+            <Icon name="rotate-ccw" size={18} /> {q('again')}
+          </button>
+          <button class="btn btn-outline" type="button" data-q-share>
+            <Icon name="share-2" size={18} /> {q('share')}
+          </button>
+        </div>
+        <p class="q-shared" data-q-shared aria-live="polite" />
+      </div>
+    )
+  }
+</div>
+{variant === 'full' && <noscript><p class="q-noscript">{q('noScript')}</p></noscript>}
+
+<script>
+  type Bin = 'green' | 'red' | 'special';
+  type Item = { id: string; bin: Bin; name: string; alt: string; tip: string };
+  type Data = {
+    lang: string;
+    items: Item[];
+    bins: Record<Bin, { title: string; rule: string }>;
+    copy: Record<string, string>;
+    shareUrl: string;
+  };
+
+  const BEST_KEY = 'nc-sorting-game-best';
+  // A balanced game: most things are green or red, two are hazardous.
+  const MIX: Record<Bin, number> = { green: 4, red: 4, special: 2 };
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const shuffle = <T,>(list: T[]) => {
+    const a = [...list];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  };
+
+  document.querySelectorAll<HTMLElement>('[data-quiz]').forEach((root) => {
+    const data: Data = JSON.parse(root.querySelector('[data-quiz-data]')!.textContent!);
+    const c = data.copy;
+    const full = root.dataset.variant === 'full';
+    const digits = (n: number) => (data.lang === 'ne' ? String(n).replace(/\d/g, (d) => '०१२३४५६७८९'[+d]) : String(n));
+    const fill = (text: string, vars: Record<string, string | number>) =>
+      text.replace(/\{(\w+)\}/g, (_, k) => (k in vars ? String(vars[k]) : `{${k}}`));
+    const $ = <T extends HTMLElement>(sel: string) => root.querySelector<T>(sel);
+
+    const play = $('[data-q-play]')!;
+    const item = $('[data-q-item]')!;
+    const alt = $('[data-q-alt]')!;
+    const card = $('[data-q-card]')!;
+    const feedback = $('[data-q-feedback]')!;
+    const verdict = $('[data-q-verdict]')!;
+    const explain = $('[data-q-explain]')!;
+    const buttons = [...root.querySelectorAll<HTMLButtonElement>('[data-q-answer]')];
+
+    let queue: Item[] = [];
+    let index = 0;
+    let score = 0;
+    let answered = false;
+    const missed: Item[] = [];
+
+    const readBest = () => {
+      try {
+        return Number(localStorage.getItem(BEST_KEY)) || 0;
+      } catch {
+        return 0;
+      }
+    };
+    const saveBest = (n: number) => {
+      try {
+        if (n > readBest()) localStorage.setItem(BEST_KEY, String(n));
+      } catch {
+        // Private mode or blocked storage: the best score just isn't remembered.
+      }
+    };
+    const bestText = () => {
+      const best = readBest();
+      return best ? fill(c.best, { n: digits(best), total: digits(MIX.green + MIX.red + MIX.special) }) : '';
+    };
+
+    const show = (next: Item) => {
+      answered = false;
+      item.textContent = next.name;
+      alt.textContent = next.alt;
+      if (full) feedback.hidden = true;
+      else {
+        // The teaser keeps its answer box in place (no jump) and shows a hint until someone answers.
+        feedback.classList.add('is-waiting');
+        verdict.textContent = c.quickHint;
+        explain.textContent = '';
+      }
+      card.classList.remove('is-right', 'is-wrong');
+      for (const b of buttons) {
+        b.disabled = false;
+        b.classList.remove('is-correct', 'is-wrong', 'is-chosen');
+        b.removeAttribute('aria-pressed');
+      }
+      if (full) {
+        $('[data-q-count]')!.textContent = fill(c.question, { n: digits(index + 1), total: digits(queue.length) });
+        $<HTMLElement>('[data-q-bar]')!.style.width = `${(index / queue.length) * 100}%`;
+      }
+      if (!reduceMotion) {
+        card.animate([{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], { duration: 220, easing: 'ease-out' });
+      }
+    };
+
+    const answer = (bin: Bin) => {
+      if (answered) return;
+      answered = true;
+      const current = queue[index];
+      const right = bin === current.bin;
+      if (right) score++;
+      else missed.push(current);
+      for (const b of buttons) {
+        b.disabled = true;
+        if (b.dataset.qAnswer === current.bin) b.classList.add('is-correct');
+        if (b.dataset.qAnswer === bin) {
+          b.classList.add('is-chosen');
+          b.setAttribute('aria-pressed', 'true');
+          if (!right) b.classList.add('is-wrong');
+        }
+      }
+      card.classList.add(right ? 'is-right' : 'is-wrong');
+      verdict.textContent = right ? c.right : `${c.wrong} ${fill(c.answer, { bin: data.bins[current.bin].title })}`;
+      explain.textContent = current.tip || data.bins[current.bin].rule;
+      feedback.hidden = false;
+      feedback.classList.remove('is-waiting');
+      if (full) {
+        $('[data-q-score]')!.textContent = digits(score);
+        const next = $<HTMLButtonElement>('[data-q-next]')!;
+        next.textContent = index === queue.length - 1 ? c.finish : c.next;
+        next.focus({ preventScroll: true });
+      } else {
+        $<HTMLButtonElement>('[data-q-another]')!.focus({ preventScroll: true });
+      }
+    };
+
+    buttons.forEach((b) => b.addEventListener('click', () => answer(b.dataset.qAnswer as Bin)));
+
+    // 1, 2 and 3 answer from the keyboard (handy on a classroom projector).
+    if (full) {
+      document.addEventListener('keydown', (e) => {
+        if (play.hidden || answered || e.altKey || e.ctrlKey || e.metaKey) return;
+        if ((e.target as HTMLElement).closest('input, textarea, select, [contenteditable]')) return;
+        const bin = (['green', 'red', 'special'] as const)[Number(e.key) - 1];
+        if (bin) answer(bin);
+      });
+    }
+
+    if (!full) {
+      // Teaser: a random item each time, never the same twice in a row.
+      let last = '';
+      const another = () => {
+        let next: Item;
+        do next = data.items[Math.floor(Math.random() * data.items.length)];
+        while (next.id === last && data.items.length > 1);
+        last = next.id;
+        queue = [next];
+        index = 0;
+        show(next);
+      };
+      $('[data-q-another]')!.addEventListener('click', another);
+      another();
+      root.hidden = false;
+      return;
+    }
+
+    const start = $('[data-q-start]')!;
+    const result = $('[data-q-result]')!;
+    const begin = () => {
+      queue = shuffle((Object.keys(MIX) as Bin[]).flatMap((bin) => shuffle(data.items.filter((i) => i.bin === bin)).slice(0, MIX[bin])));
+      index = 0;
+      score = 0;
+      missed.length = 0;
+      $('[data-q-score]')!.textContent = digits(0);
+      start.hidden = true;
+      result.hidden = true;
+      play.hidden = false;
+      show(queue[0]);
+      buttons[0].focus({ preventScroll: true });
+      play.scrollIntoView({ block: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' });
+    };
+
+    const finish = () => {
+      play.hidden = true;
+      result.hidden = false;
+      const total = queue.length;
+      saveBest(score);
+      $('[data-q-final]')!.textContent = fill(c.score, { n: digits(score), total: digits(total) });
+      $('[data-q-message]')!.textContent = score === total ? c.perfect : score >= total - 2 ? c.great : score >= total / 2 ? c.good : c.low;
+      $('[data-q-best-result]')!.textContent = bestText();
+      const list = $('[data-q-missed]')!;
+      list.replaceChildren(
+        ...missed.map((m) => {
+          const li = document.createElement('li');
+          li.className = `bin-${m.bin}`;
+          const name = document.createElement('strong');
+          name.textContent = m.name;
+          const where = document.createElement('span');
+          where.textContent = `${data.bins[m.bin].title}${m.tip ? ` — ${m.tip}` : ''}`;
+          li.append(name, where);
+          return li;
+        }),
+      );
+      $('[data-q-missed-wrap]')!.hidden = missed.length === 0;
+      result.dataset.score = String(score);
+      result.focus({ preventScroll: true });
+      result.scrollIntoView({ block: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' });
+    };
+
+    $('[data-q-next]')!.addEventListener('click', () => {
+      index++;
+      if (index < queue.length) {
+        show(queue[index]);
+        buttons[0].focus({ preventScroll: true });
+      } else finish();
+    });
+    $('[data-q-begin]')!.addEventListener('click', begin);
+    $('[data-q-again]')!.addEventListener('click', begin);
+
+    const shared = $('[data-q-shared]')!;
+    $('[data-q-share]')!.addEventListener('click', async () => {
+      const text = fill(c.shareText, { n: digits(score), total: digits(queue.length) });
+      try {
+        if (navigator.share) {
+          await navigator.share({ title: document.title, text, url: data.shareUrl });
+          return;
+        }
+        await navigator.clipboard.writeText(`${text} ${data.shareUrl}`);
+        shared.textContent = c.copied;
+      } catch {
+        // Sharing was cancelled or the clipboard is blocked; nothing to report.
+      }
+    });
+
+    const best = $('[data-q-best]')!;
+    best.textContent = bestText();
+    best.hidden = !best.textContent;
+    root.hidden = false;
+  });
+</script>
+
+<style>
+  .quiz {
+    --q-green: var(--green-500);
+    --q-red: var(--bucket-red);
+    --q-special: var(--hazard);
+  }
+
+  /* ---------- Full game ---------- */
+  .quiz-full {
+    display: grid;
+    padding: clamp(1.25rem, 4vw, 2.25rem);
+    border-radius: var(--radius-lg);
+    background:
+      radial-gradient(520px 260px at 100% 0%, rgb(68 124 204 / 0.35), transparent 70%),
+      var(--green-900);
+    color: #e2eedc;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .q-start {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 1.25rem;
+    align-items: center;
+  }
+
+  .q-badge {
+    display: grid;
+    place-items: center;
+    width: 72px;
+    height: 72px;
+    border-radius: 22px;
+    background: rgb(255 255 255 / 0.1);
+    color: var(--green-300);
+  }
+
+  .q-start-note {
+    font-size: 1.05rem;
+    color: #fff;
+  }
+
+  .q-best {
+    color: var(--green-300);
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+
+  .q-play {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .q-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    font-weight: 600;
+    color: var(--green-200);
+  }
+
+  .q-score {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.1rem 0.7rem;
+    border-radius: 999px;
+    background: rgb(255 255 255 / 0.12);
+    color: #fff;
+  }
+
+  .q-progress {
+    height: 6px;
+    border-radius: 6px;
+    background: rgb(255 255 255 / 0.14);
+    overflow: hidden;
+  }
+
+  .q-progress span {
+    display: block;
+    height: 100%;
+    width: 0;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--green-300), #8fb7ec);
+    transition: width 0.35s var(--ease);
+  }
+
+  .q-prompt {
+    margin-top: 0.5rem;
+    font-weight: 600;
+    color: var(--green-200);
+  }
+
+  .q-card {
+    padding: clamp(1.1rem, 3vw, 1.6rem) clamp(1.1rem, 3vw, 1.75rem);
+    border-radius: var(--radius);
+    background: #fff;
+    color: var(--ink);
+    box-shadow: 0 0 0 4px transparent;
+    transition: box-shadow 0.25s var(--ease);
+  }
+
+  .q-card.is-right {
+    box-shadow: 0 0 0 4px var(--green-300);
+  }
+
+  .q-card.is-wrong {
+    box-shadow: 0 0 0 4px #f0a59c;
+  }
+
+  .q-item {
+    font-family: var(--font-head);
+    font-size: var(--step-2);
+    font-weight: 700;
+    line-height: 1.25;
+  }
+
+  .q-alt {
+    margin-top: 0.2rem;
+    color: var(--muted);
+  }
+
+  .q-alt:empty {
+    display: none;
+  }
+
+  .q-answers {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .q-answer {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    min-height: 72px;
+    padding: 0.75rem 0.9rem;
+    border: 2px solid rgb(255 255 255 / 0.2);
+    border-radius: var(--radius);
+    background: rgb(255 255 255 / 0.06);
+    color: #fff;
+    text-align: start;
+    transition:
+      background-color 0.2s var(--ease),
+      border-color 0.2s var(--ease),
+      transform 0.15s var(--ease),
+      opacity 0.2s var(--ease);
+  }
+
+  .q-answer:not(:disabled):hover {
+    background: rgb(255 255 255 / 0.14);
+    border-color: rgb(255 255 255 / 0.5);
+  }
+
+  .q-answer:not(:disabled):active {
+    transform: scale(0.98);
+  }
+
+  .q-answer:focus-visible {
+    outline: 3px solid #8fb7ec;
+    outline-offset: 2px;
+  }
+
+  .q-answer:disabled {
+    cursor: default;
+  }
+
+  .q-answer:disabled:not(.is-correct, .is-chosen) {
+    opacity: 0.45;
+  }
+
+  .q-answer.is-correct {
+    border-color: var(--green-300);
+    background: rgb(159 203 138 / 0.25);
+  }
+
+  .q-answer.is-wrong {
+    border-color: #f0a59c;
+    background: rgb(240 165 156 / 0.2);
+  }
+
+  .q-dot {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    color: #fff;
+  }
+
+  .q-green .q-dot {
+    background: var(--q-green);
+  }
+
+  .q-red .q-dot {
+    background: var(--q-red);
+  }
+
+  .q-special .q-dot {
+    background: var(--q-special);
+  }
+
+  .q-answer-text {
+    display: grid;
+    line-height: 1.3;
+  }
+
+  .q-answer-text small {
+    color: #cfe0c8;
+    font-size: 0.85rem;
+  }
+
+  .q-feedback {
+    display: grid;
+    gap: 0.4rem;
+    padding: 1rem 1.1rem;
+    border-radius: var(--radius-sm);
+    background: rgb(255 255 255 / 0.08);
+  }
+
+  .q-verdict {
+    font-family: var(--font-head);
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #fff;
+  }
+
+  .q-explain {
+    color: #dbe8d4;
+  }
+
+  .q-feedback .btn-row {
+    margin-top: 0.5rem;
+  }
+
+  .q-result {
+    display: grid;
+    gap: 0.75rem;
+    justify-items: center;
+    text-align: center;
+    outline: none;
+  }
+
+  .q-trophy {
+    color: #f5c542;
+  }
+
+  .q-final {
+    font-family: var(--font-head);
+    font-size: var(--step-4);
+    font-weight: 700;
+    line-height: 1.1;
+    color: #fff;
+  }
+
+  .q-message {
+    max-width: 36ch;
+    font-size: 1.1rem;
+    color: #fff;
+  }
+
+  .q-missed {
+    display: grid;
+    gap: 0.6rem;
+    width: min(100%, 560px);
+    margin-top: 0.5rem;
+    text-align: start;
+  }
+
+  .q-missed h3 {
+    font-size: 1rem;
+    color: var(--green-200);
+  }
+
+  .q-missed ul {
+    list-style: none;
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .q-missed li {
+    display: grid;
+    gap: 0.1rem;
+    padding: 0.6rem 0.85rem;
+    border-left: 4px solid;
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    background: rgb(255 255 255 / 0.07);
+  }
+
+  .q-missed li strong {
+    color: #fff;
+  }
+
+  .q-missed li span {
+    color: #d3e3cc;
+    font-size: 0.93rem;
+  }
+
+  .q-missed .bin-green {
+    border-color: var(--q-green);
+  }
+
+  .q-missed .bin-red {
+    border-color: #e16a5e;
+  }
+
+  .q-missed .bin-special {
+    border-color: #d9952b;
+  }
+
+  .q-result .btn-row {
+    justify-content: center;
+    margin-top: 0.5rem;
+  }
+
+  .quiz-full .btn-outline {
+    border-color: rgb(255 255 255 / 0.4);
+    background: transparent;
+    color: #fff;
+  }
+
+  .quiz-full .btn-outline:hover {
+    border-color: #fff;
+    color: #fff;
+  }
+
+  .quiz-full .btn-primary {
+    background: var(--green-500);
+  }
+
+  .quiz-full .btn-primary:hover {
+    background: var(--green-600);
+  }
+
+  .q-shared {
+    min-height: 1.4em;
+    color: var(--green-300);
+    font-weight: 600;
+  }
+
+  .q-noscript {
+    padding: 1rem 1.25rem;
+    border-radius: var(--radius-sm);
+    background: var(--blue-50);
+  }
+
+  /* ---------- Teaser (home page) ---------- */
+  .quiz-teaser {
+    padding: clamp(1.1rem, 3vw, 1.6rem);
+    border-radius: var(--radius-lg);
+    background:
+      radial-gradient(420px 220px at 100% 0%, rgb(68 124 204 / 0.35), transparent 70%),
+      var(--green-900);
+    color: #e2eedc;
+    box-shadow: var(--shadow);
+  }
+
+  .quiz-teaser .q-play {
+    gap: 0.75rem;
+  }
+
+  .quiz-teaser .q-feedback.is-waiting .q-verdict {
+    font-family: var(--font-sans);
+    font-weight: 400;
+    font-size: 1rem;
+    color: #cfe0c8;
+  }
+
+  .quiz-teaser .q-explain:empty {
+    display: none;
+  }
+
+  .q-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    width: fit-content;
+    padding: 0.2rem 0.75rem;
+    border-radius: 999px;
+    background: rgb(255 255 255 / 0.12);
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  .quiz-teaser .q-prompt {
+    margin: 0;
+  }
+
+  .quiz-teaser .q-item {
+    font-size: var(--step-1);
+  }
+
+  .quiz-teaser .q-answers {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .quiz-teaser .q-answer {
+    min-height: 54px;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .quiz-teaser .q-dot {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+  }
+
+  @media (max-width: 760px) {
+    .q-start {
+      grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .q-start .btn {
+      grid-column: 1 / -1;
+    }
+
+    .q-answers {
+      grid-template-columns: 1fr;
+    }
+
+    .q-answer {
+      min-height: 60px;
+    }
+  }
+</style>

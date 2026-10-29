@@ -5,9 +5,14 @@ import Figure from '~/components/Figure.astro';
 import PageHero from '~/components/PageHero.astro';
 import PageNav from '~/components/PageNav.astro';
 import SortFinder from '~/components/SortFinder.astro';
+import SortQuiz from '~/components/SortQuiz.astro';
+import YourWaste from '~/components/YourWaste.astro';
+import CompostDoctor from '~/components/CompostDoctor.astro';
+import ToolCards from '~/components/ToolCards.astro';
 import SectionHead from '~/components/SectionHead.astro';
 import YouTube from '~/components/YouTube.astro';
 import { publications, research, compostMethods } from '~/data/resources';
+import { doctorCopy, quizCopy, toolsCopy, wasteCopy } from '~/data/tools';
 import { studies } from '~/data/partners';
 import { caption } from '~/data/photos';
 import { org } from '~/data/site';
@@ -23,11 +28,15 @@ const copyHref = (title: string) =>
 ---
 
 <BaseLayout title={t('resources.title')} description={t('resources.lead')}>
-  <PageHero eyebrow={t('nav.resources')} title={t('resources.title')} lead={t('resources.lead')} />
+  <PageHero eyebrow={t('nav.resources')} title={t('resources.title')} lead={t('resources.lead')}>
+    <ToolCards slot="after" lang={lang} variant="tiles" label={tr(toolsCopy.label, lang)} />
+  </PageHero>
   <PageNav
     label={t('pagenav.label')}
     items={[
       { id: 'finder', label: t('finder.eyebrow') },
+      { id: 'quiz', label: tr(quizCopy.eyebrow, lang) },
+      { id: 'your-waste', label: tr(wasteCopy.eyebrow, lang) },
       { id: 'composting', label: t('resources.nav.compost') },
       { id: 'publications', label: t('resources.pubsEyebrow') },
       { id: 'research', label: t('resources.researchEyebrow') },
@@ -45,6 +54,22 @@ const copyHref = (title: string) =>
         </a>
       </div>
       <SortFinder lang={lang} />
+    </div>
+  </section>
+
+  <!-- Sorting game -->
+  <section class="section" id="quiz">
+    <div class="container">
+      <SectionHead eyebrow={tr(quizCopy.eyebrow, lang)} title={tr(quizCopy.title, lang)} intro={tr(quizCopy.intro, lang)} />
+      <SortQuiz lang={lang} />
+    </div>
+  </section>
+
+  <!-- Household waste -->
+  <section class="section section-white" id="your-waste">
+    <div class="container">
+      <SectionHead eyebrow={tr(wasteCopy.eyebrow, lang)} title={tr(wasteCopy.title, lang)} intro={tr(wasteCopy.intro, lang)} />
+      <YourWaste lang={lang} />
     </div>
   </section>
 
@@ -66,6 +91,11 @@ const copyHref = (title: string) =>
           ))
         }
       </ol>
+
+      <div class="doctor-block" id="compost-doctor">
+        <SectionHead eyebrow={tr(doctorCopy.eyebrow, lang)} title={tr(doctorCopy.title, lang)} intro={tr(doctorCopy.intro, lang)} />
+        <CompostDoctor lang={lang} />
+      </div>
     </div>
   </section>
 
@@ -153,6 +183,20 @@ const copyHref = (title: string) =>
   </section>
 </BaseLayout>
 
+<script>
+  // The tools change height once their scripts run (the game appears, tabs fold away), which can
+  // leave a link such as /resources/#compost-doctor short of its section. Jump there again.
+  const id = decodeURIComponent(location.hash.slice(1));
+  const target = id && document.getElementById(id);
+  if (target) {
+    const startY = scrollY;
+    requestAnimationFrame(() => {
+      // Only if the reader has not started scrolling on their own.
+      if (Math.abs(scrollY - startY) < 2) target.scrollIntoView({ block: 'start', behavior: 'instant' });
+    });
+  }
+</script>
+
 <style>
   .finder-head {
     display: flex;
@@ -179,6 +223,12 @@ const copyHref = (title: string) =>
 
   .method p {
     color: var(--muted);
+  }
+
+  .doctor-block {
+    margin-top: clamp(3rem, 7vw, 5rem);
+    padding-top: clamp(2.5rem, 6vw, 4rem);
+    border-top: 1px solid var(--line);
   }
 
   .step {

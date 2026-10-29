@@ -72,6 +72,23 @@ import UserRoundPlusIcon from '@lucide/astro/icons/user-round-plus';
 import RefreshCwIcon from '@lucide/astro/icons/refresh-cw';
 import LinkIcon from '@lucide/astro/icons/link';
 import ListChecksIcon from '@lucide/astro/icons/list-checks';
+// Interactive tools
+import Gamepad2Icon from '@lucide/astro/icons/gamepad-2';
+import CalculatorIcon from '@lucide/astro/icons/calculator';
+import StethoscopeIcon from '@lucide/astro/icons/stethoscope';
+import TrophyIcon from '@lucide/astro/icons/trophy';
+import RotateCcwIcon from '@lucide/astro/icons/rotate-ccw';
+import Share2Icon from '@lucide/astro/icons/share-2';
+import MinusIcon from '@lucide/astro/icons/minus';
+import BugIcon from '@lucide/astro/icons/bug';
+import WindIcon from '@lucide/astro/icons/wind';
+import DropletIcon from '@lucide/astro/icons/droplet';
+import SunIcon from '@lucide/astro/icons/sun';
+import RatIcon from '@lucide/astro/icons/rat';
+import TimerIcon from '@lucide/astro/icons/timer';
+import ShoppingBagIcon from '@lucide/astro/icons/shopping-bag';
+import MountainIcon from '@lucide/astro/icons/mountain';
+import BatteryIcon from '@lucide/astro/icons/battery';
 
 export const icons = {
   'arrow-right': ArrowRightIcon,
@@ -146,6 +163,22 @@ export const icons = {
   'refresh-cw': RefreshCwIcon,
   'link': LinkIcon,
   'list-checks': ListChecksIcon,
+  'gamepad-2': Gamepad2Icon,
+  'calculator': CalculatorIcon,
+  'stethoscope': StethoscopeIcon,
+  'trophy': TrophyIcon,
+  'rotate-ccw': RotateCcwIcon,
+  'share-2': Share2Icon,
+  'minus': MinusIcon,
+  'bug': BugIcon,
+  'wind': WindIcon,
+  'droplet': DropletIcon,
+  'sun': SunIcon,
+  'rat': RatIcon,
+  'timer': TimerIcon,
+  'shopping-bag': ShoppingBagIcon,
+  'mountain': MountainIcon,
+  'battery': BatteryIcon,
 } as const;
 
 export type IconName = keyof typeof icons;

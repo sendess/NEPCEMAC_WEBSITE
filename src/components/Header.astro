@@ -1,7 +1,8 @@
 ---
 import Icon from './Icon.astro';
-import { nav } from '~/data/site';
-import { localizePath, stripLang, useTranslations, type Lang } from '~/i18n/utils';
+import { nav, type NavItem } from '~/data/site';
+import { tools, toolsCopy, type Tool } from '~/data/tools';
+import { localizePath, stripLang, tr, useTranslations, type Lang } from '~/i18n/utils';
 
 type Props = { lang: Lang };
 const { lang } = Astro.props;
@@ -13,6 +14,8 @@ const otherLang: Lang = lang === 'en' ? 'ne' : 'en';
 // The 404 page has no Nepali twin, so its switch goes to the other language's home page.
 const basePath = stripLang(Astro.url.pathname);
 const switchHref = localizePath(basePath.startsWith('/404') ? '/' : basePath, otherLang);
+/** Menu items with a list under them: the interactive tools sit under Resources. */
+const submenus: Partial<Record<NavItem['key'], Tool[]>> = { resources: tools };
 ---
 
 <header class="site-header" data-header>
@@ -28,15 +31,46 @@ const switchHref = localizePath(basePath.startsWith('/404') ? '/' : basePath, ot
     </a>
 
     <nav class="nav" id="site-nav" aria-label={t('site.menu')}>
-      <ul>
+      <ul class="menu">
         {
-          nav.map((item) => (
-            <li>
-              <a href={localizePath(item.href, lang)} aria-current={isActive(item.href) ? 'page' : undefined}>
-                {t(`nav.${item.key}`)}
-              </a>
-            </li>
-          ))
+          nav.map((item) => {
+            const sub = submenus[item.key];
+            return (
+              <li class:list={[sub && 'has-sub']} data-sub={sub ? '' : undefined}>
+                <a class="top" href={localizePath(item.href, lang)} aria-current={isActive(item.href) ? 'page' : undefined}>
+                  {t(`nav.${item.key}`)}
+                </a>
+                {sub && (
+                  <>
+                    <button type="button" class="sub-toggle" aria-expanded="false" aria-controls={`sub-${item.key}`} data-sub-toggle>
+                      <Icon name="chevron-down" size={16} />
+                      <span class="visually-hidden">{tr(toolsCopy.menuOpen, lang)}</span>
+                    </button>
+                    <div class="sub" id={`sub-${item.key}`}>
+                      <ul>
+                        {sub.map((tool) => (
+                          <li>
+                            <a href={localizePath(tool.href, lang)}>
+                              <span class="sub-icon" aria-hidden="true">
+                                <Icon name={tool.icon} size={18} />
+                              </span>
+                              <span class="sub-text">
+                                <strong>{tr(tool.title, lang)}</strong>
+                                <small>{tr(tool.text, lang)}</small>
+                              </span>
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                      <a class="sub-all link-arrow" href={localizePath(item.href, lang)}>
+                        {tr(toolsCopy.menuAll, lang)} <Icon name="arrow-right" size={16} />
+                      </a>
+                    </div>
+                  </>
+                )}
+              </li>
+            );
+          })
         }
       </ul>
       <div class="nav-extra">
@@ -61,12 +95,15 @@ const switchHref = localizePath(basePath.startsWith('/404') ? '/' : basePath, ot
 <script>
   const header = document.querySelector<HTMLElement>('[data-header]');
   const toggle = header?.querySelector<HTMLButtonElement>('[data-menu-toggle]');
+  const setOpen = (open: boolean) => {
+    if (!header || !toggle) return;
+    // The menu panel starts right under the header, wherever the header sits (a notice bar can push it down).
+    if (open) header.style.setProperty('--menu-top', `${Math.max(0, Math.round(header.getBoundingClientRect().bottom))}px`);
+    header.toggleAttribute('data-open', open);
+    toggle.setAttribute('aria-expanded', String(open));
+    document.documentElement.classList.toggle('menu-open', open);
+  };
   if (header && toggle) {
-    const setOpen = (open: boolean) => {
-      header.toggleAttribute('data-open', open);
-      toggle.setAttribute('aria-expanded', String(open));
-      document.documentElement.classList.toggle('menu-open', open);
-    };
     toggle.addEventListener('click', () => setOpen(!header.hasAttribute('data-open')));
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && header.hasAttribute('data-open')) {
@@ -76,6 +113,40 @@ const switchHref = localizePath(basePath.startsWith('/404') ? '/' : basePath, ot
     });
     matchMedia('(min-width: 1121px)').addEventListener('change', (e) => e.matches && setOpen(false));
   }
+
+  // Sub-menus (Resources → tools): the chevron opens them; on wide screens hovering does too (CSS).
+  header?.querySelectorAll<HTMLElement>('[data-sub]').forEach((item) => {
+    const button = item.querySelector<HTMLButtonElement>('[data-sub-toggle]')!;
+    const setSub = (open: boolean) => {
+      item.toggleAttribute('data-sub-open', open);
+      button.setAttribute('aria-expanded', String(open));
+    };
+    button.addEventListener('click', () => setSub(!item.hasAttribute('data-sub-open')));
+    item.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && item.hasAttribute('data-sub-open')) {
+        e.stopPropagation();
+        setSub(false);
+        button.focus();
+      }
+    });
+    item.addEventListener('focusout', (e) => {
+      if (!item.contains(e.relatedTarget as Node | null)) setSub(false);
+    });
+    document.addEventListener('click', (e) => {
+      if (!item.contains(e.target as Node)) setSub(false);
+    });
+  });
+
+  // A link to a part of the page already open (e.g. Resources → Sorting game) closes the menus.
+  header?.querySelectorAll<HTMLAnchorElement>('.nav a[href*="#"]').forEach((a) =>
+    a.addEventListener('click', () => {
+      if (a.pathname !== location.pathname) return;
+      header.querySelectorAll('[data-sub-open]').forEach((el) => el.removeAttribute('data-sub-open'));
+      header.querySelectorAll('[data-sub-toggle]').forEach((el) => el.setAttribute('aria-expanded', 'false'));
+      setOpen(false);
+    }),
+  );
+
   // A thin shadow once the page scrolls under the header.
   const onScroll = () => header?.toggleAttribute('data-scrolled', scrollY > 8);
   addEventListener('scroll', onScroll, { passive: true });
@@ -125,7 +196,7 @@ const switchHref = localizePath(basePath.startsWith('/404') ? '/' : basePath, ot
     gap: 1rem;
   }
 
-  .nav ul {
+  .menu {
     display: flex;
     align-items: center;
     gap: 0.1rem;
@@ -133,7 +204,7 @@ const switchHref = localizePath(basePath.startsWith('/404') ? '/' : basePath, ot
     margin-inline: auto;
   }
 
-  .nav ul a {
+  .top {
     display: block;
     padding: 0.5rem 0.62rem;
     border-radius: 999px;
@@ -145,22 +216,158 @@ const switchHref = localizePath(basePath.startsWith('/404') ? '/' : basePath, ot
     white-space: nowrap;
   }
 
-  :lang(ne) .nav ul a {
+  :lang(ne) .top {
     font-family: var(--font-sans);
     font-size: 1.05rem;
   }
 
-  .nav ul a:hover {
+  .top:hover {
     background: var(--green-50);
     color: var(--green);
   }
 
-  .nav ul a[aria-current='page'] {
+  .top[aria-current='page'] {
     background: var(--green-50);
     color: var(--green);
     box-shadow: inset 0 0 0 1px var(--green-100);
   }
 
+  /* ---------- Sub-menu ---------- */
+  .has-sub {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .has-sub .top {
+    padding-right: 0.25rem;
+  }
+
+  .sub-toggle {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--muted);
+  }
+
+  .sub-toggle:hover,
+  [data-sub-open] .sub-toggle {
+    background: var(--green-50);
+    color: var(--green);
+  }
+
+  .sub-toggle :global(.icon) {
+    transition: rotate 0.2s var(--ease);
+  }
+
+  [data-sub-open] .sub-toggle :global(.icon) {
+    rotate: 180deg;
+  }
+
+  .sub {
+    position: absolute;
+    top: calc(100% + 12px);
+    left: 50%;
+    z-index: 60;
+    display: none;
+    width: 360px;
+    padding: 0.55rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: #fff;
+    box-shadow: var(--shadow-lg);
+    translate: -50% 0;
+  }
+
+  /* Keeps the menu open while the pointer crosses the gap below the link. */
+  .sub::before {
+    content: '';
+    position: absolute;
+    inset: -14px 0 auto;
+    height: 14px;
+  }
+
+  [data-sub-open] .sub {
+    display: block;
+  }
+
+  @media (hover: hover) and (min-width: 1121px) {
+    .has-sub:hover .sub {
+      display: block;
+    }
+  }
+
+  .sub ul {
+    list-style: none;
+    display: grid;
+    gap: 2px;
+  }
+
+  .sub li a {
+    display: flex;
+    gap: 0.7rem;
+    align-items: flex-start;
+    padding: 0.55rem 0.65rem;
+    border-radius: var(--radius-sm);
+    color: var(--ink);
+    text-decoration: none;
+  }
+
+  .sub li a:hover,
+  .sub li a:focus-visible {
+    background: var(--green-50);
+  }
+
+  .sub-icon {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: var(--green-50);
+    color: var(--green);
+  }
+
+  .sub li a:hover .sub-icon {
+    background: var(--green);
+    color: #fff;
+  }
+
+  .sub-text {
+    display: grid;
+    gap: 0.1rem;
+  }
+
+  .sub-text strong {
+    font-family: var(--font-head);
+    font-size: 0.93rem;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  :lang(ne) .sub-text strong {
+    font-family: var(--font-sans);
+    font-size: 1.02rem;
+  }
+
+  .sub-text small {
+    color: var(--muted);
+    font-size: 0.84rem;
+    line-height: 1.35;
+  }
+
+  .sub-all {
+    margin: 0.45rem 0.65rem 0.3rem;
+    font-size: 0.9rem;
+  }
+
+  /* ---------- Language and contact ---------- */
   .nav-extra {
     display: flex;
     align-items: center;
@@ -206,10 +413,17 @@ const switchHref = localizePath(basePath.startsWith('/404') ? '/' : basePath, ot
       display: grid;
     }
 
+    /* A backdrop filter makes the header the frame of its fixed children, which would squeeze the
+       open menu into the header bar; the open menu has a solid background instead. */
+    .site-header[data-open] {
+      backdrop-filter: none;
+      background: var(--surface);
+    }
+
     .nav {
       display: none;
       position: fixed;
-      inset: var(--header-h) 0 0 0;
+      inset: var(--menu-top, var(--header-h)) 0 0 0;
       flex-direction: column;
       align-items: stretch;
       gap: 1.25rem;
@@ -231,17 +445,46 @@ const switchHref = localizePath(basePath.startsWith('/404') ? '/' : basePath, ot
       display: none;
     }
 
-    .nav ul {
+    .menu {
       flex-direction: column;
       align-items: stretch;
       margin: 0;
       gap: 0.25rem;
     }
 
-    .nav ul a {
+    .top {
       padding: 0.85rem 1rem;
       border-radius: var(--radius-sm);
       font-size: 1.1rem;
+    }
+
+    .has-sub {
+      flex-wrap: wrap;
+    }
+
+    .has-sub .top {
+      flex: 1;
+      padding-right: 1rem;
+    }
+
+    .sub-toggle {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-sm);
+    }
+
+    /* On phones the tools open as a list inside the menu. */
+    .sub {
+      position: static;
+      width: 100%;
+      padding: 0.25rem 0 0.5rem 0.75rem;
+      border: 0;
+      box-shadow: none;
+      translate: none;
+    }
+
+    .sub::before {
+      display: none;
     }
 
     .nav-extra {
